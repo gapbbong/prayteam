@@ -18,10 +18,11 @@ function urlBase64ToUint8Array(base64String) {
 
 export function useNotifications() {
     const [permission, setPermission] = useState(
-        typeof window !== 'undefined' ? Notification.permission : 'default'
+        typeof window !== 'undefined' && 'Notification' in window ? Notification.permission : 'default'
     );
 
     const subscribe = useCallback(async (groupId) => {
+        if (typeof window === 'undefined' || !('Notification' in window)) return;
         if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
             console.warn('Push messaging is not supported');
             return;
@@ -52,10 +53,19 @@ export function useNotifications() {
     }, []);
 
     const requestPermission = useCallback(async (groupId) => {
-        const perm = await Notification.requestPermission();
-        setPermission(perm);
-        if (perm === 'granted') {
-            await subscribe(groupId);
+        if (typeof window === 'undefined' || !('Notification' in window)) {
+            alert('이 브라우저는 알림을 지원하지 않습니다.');
+            return;
+        }
+
+        try {
+            const perm = await Notification.requestPermission();
+            setPermission(perm);
+            if (perm === 'granted') {
+                await subscribe(groupId);
+            }
+        } catch (err) {
+            console.error('Permission request failed', err);
         }
     }, [subscribe]);
 
