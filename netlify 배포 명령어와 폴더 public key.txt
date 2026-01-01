@@ -1,0 +1,5 @@
+D:\App\Test Pray>netlify deploy --prod
+
+D:\App\Test Pray>node generate-keys.js
+Public Key: BNgTNkE1TJJKTOEq9wEq1ZtOQIAnqbPx1E18id4CTuLMJtnrxHxyOhBBpeOfvsl8Kc-WnmgBU-MEFEFU3ptMZYQ
+Private Key: --7H6q4zn8KBH9EF41ps7dANVSMRskp_ypbLlcahKGY

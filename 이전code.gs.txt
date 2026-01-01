@@ -1,0 +1,845 @@
+
+/**
+ * ✅ 기도그룹 관리용 GAS (그룹ID = 시트이름 구조)
+ * - mode=login → 관리자계정 시트에서 확인
+ * - mode=signup → 새 계정 추가
+ * - 그룹ID, 그룹명은 "그룹정보" 시트에서만 관리
+ * - 각 그룹ID가 곧 시트 이름으로 사용됨 (예: XL8IXTvhrRoknAKgQ1Gs)
+ */
+
+function doGet(e) {
+  const mode = e.parameter.mode || "";
+
+  switch (mode) {
+    case "login": return handleLogin(e);
+    case "signup": return handleSignup(e);
+    case "getGroups": return handleGetGroups(e);
+    case "getGroupById": return handleGetGroupById(e);
+    case "getPrayers": return handleGetPrayers(e);
+    case "getPrayersAll": return handleGetPrayersAll(e);
+    case "getSubs": return handleGetSubs(e);
+    default:
+      return ContentService.createTextOutput("Invalid request")
+        .setMimeType(ContentService.MimeType.TEXT);
+  }
+}
+
+function doPost(e) {
+  Logger.log("=== 📩 doPost 호출됨 ===");
+
+  if (!e) {
+    Logger.log("⚠ e 객체 없음");
+    return jsonOutput({ error: "no event object" });
+  }
+
+  Logger.log("▶ raw e.parameter: " + JSON.stringify(e.parameter));
+  Logger.log("▶ raw e.postData: " + (e.postData ? e.postData.contents : "없음"));
+
+  let mode = e.parameter.mode || "";
+  let data = {};
+
+  if (e.postData && e.postData.contents) {
+    try {
+      data = JSON.parse(e.postData.contents);
+      Logger.log("📌 JSON 파싱 성공: " + JSON.stringify(data));
+    } catch (err) {
+      Logger.log("❌ JSON 파싱 실패: " + err);
+    }
+  } else {
+    Logger.log("⚠ postData.contents 없음");
+  }
+
+  if (!mode && data.mode) {
+    mode = data.mode;
+    Logger.log("📌 data.mode로 mode 식별됨: " + mode);
+  }
+
+  Logger.log("▶ 최종 mode: " + mode);
+
+  switch (mode) {
+    case "renameGroup":
+      Logger.log("=== ✏ renameGroup 실행 ===");
+      return handleRenameGroup(e);
+
+    case "deleteGroup":
+      Logger.log("=== 🗑 deleteGroup 실행 ===");
+      return handleDeleteGroup(e);
+
+    case "savePrayer": return handleSavePrayer(data);
+    case "addMember": return handleAddMember(data);
+    case "addGroup": return handleAddGroup(e);
+    case "saveNote": return handleSaveNote(e);
+    case "saveSub": return handleSaveSub(e);
+    case "renameMember": return handleRenameMember(data);
+    case "addSharedGroup":   return handleAddSharedGroup(e);
+    case "addLog": return handleAddLog(e);
+    case "logStay":  return handleLogStay(e);
+
+
+    default:
+      Logger.log("⚠ 알 수 없는 mode: " + mode);
+      return jsonOutput({ error: "invalid mode", received: mode });
+  }
+}
+
+/* -------------------------------------------------------------------------- */
+/* ✅ 그룹, 멤버, 로그인, 회원가입                                            */
+/* -------------------------------------------------------------------------- */
+
+function handleLogin(e) {
+  const id = e.parameter.id || "";
+  const pwd = e.parameter.pwd || "";
+  const sheet = getOrCreateSheet("관리자계정");
+
+  const data = sheet.getDataRange().getValues();
+  const headers = data.shift();
+  const idCol = headers.indexOf("관리자ID");
+  const pwdCol = headers.indexOf("비밀번호");
+
+  const found = data.find(r => r[idCol] === id && String(r[pwdCol]) === String(pwd));
+  if (!found) return jsonOutput({ success: false, message: "아이디 또는 비밀번호 불일치" });
+
+  return jsonOutput({ success: true, message: "로그인 성공" });
+}
+
+function handleSignup(e) {
+  const id = e.parameter.id || "";
+  const pwd = e.parameter.pwd || "";
+  const email = e.parameter.email || "";
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName("관리자계정");
+  if (!sheet) return jsonOutput({ success: false, message: "시트를 찾을 수 없습니다." });
+
+  const data = sheet.getDataRange().getValues();
+  const headers = data.shift();
+
+  const idCol = headers.indexOf("관리자ID");
+  const emailCol = headers.indexOf("이메일");
+
+  // 🔥 아이디 중복 체크
+  if (data.some(r => r[idCol] === id)) {
+    return jsonOutput({ success: false, message: "이미 존재하는 아이디입니다." });
+  }
+
+  // 🔥 이메일 중복 체크
+  if (email && data.some(r => r[emailCol] === email)) {
+    return jsonOutput({ success: false, message: "이미 가입된 이메일입니다." });
+  }
+
+  // 가입일 저장
+  const joinedAt = Utilities.formatDate(new Date(), "Asia/Seoul", "yyyy-MM-dd HH:mm:ss");
+
+  // 🔥 새 데이터 추가
+  sheet.appendRow([id, pwd, joinedAt, email]);
+  return jsonOutput({ success: true, message: "회원가입되었습니다." });
+}
+
+function handleGetGroups(e) {
+  const adminId = e.parameter.adminId || "";
+  const sheet = getOrCreateSheet("그룹정보");
+  const rows = sheet.getDataRange().getValues();
+  const headers = rows[0];
+
+  const idxAdmin = headers.indexOf("관리자ID");
+  const idxGroupName = headers.indexOf("그룹명");
+  const idxGroupId = headers.indexOf("그룹ID");
+  const idxCount = headers.indexOf("구성원수");
+
+  // 구성원 칼럼 자동 탐색
+  const memberCols = headers
+    .map((h, i) => (h.startsWith("구성원") && h !== "구성원수") ? i : -1)
+    .filter(i => i !== -1);
+
+  const groups = rows.slice(1)
+    .filter(r =>
+  String(r[idxAdmin]).normalize("NFKC").replace(/\s+/g, "") ===
+  adminId.normalize("NFKC").replace(/\s+/g, "")
+)
+
+    .map(r => {
+      // MODIFIED: 숫자/문자 모두 안전하게 파싱
+const members = memberCols
+  .map(i => String(r[i] || "").trim())   // 숫자 → 문자열 변환
+  .filter(v => v !== "");                // 빈 문자열 제거
+
+
+      return {
+        관리자ID: r[idxAdmin],
+        그룹명: r[idxGroupName],
+        그룹ID: r[idxGroupId],
+        구성원수: r[idxCount],
+        구성원목록: members
+      };
+    });
+
+  return jsonOutput({ groups });
+}
+
+function handleGetGroupById(e) {
+  const groupId = e.parameter.groupId || "";
+  const sheet = getOrCreateSheet("그룹정보");
+  const rows = sheet.getDataRange().getValues();
+  const headers = rows[0];
+
+  const idxGroupId = headers.indexOf("그룹ID");
+  const idxGroupName = headers.indexOf("그룹명");
+
+  const memberCols = headers
+    .map((h, i) => (h.startsWith("구성원") && h !== "구성원수") ? i : -1)
+    .filter(i => i !== -1);
+
+  const row = rows.find(r => r[idxGroupId] === groupId);
+  if (!row) return jsonOutput({ error: "group not found" });
+
+  // MODIFIED: 숫자 포함 모든 값 안전 처리
+const members = memberCols
+  .map(i => String(row[i] || "").trim())
+  .filter(v => v !== "");
+
+
+  return jsonOutput({
+    group: {
+      그룹ID: row[idxGroupId],
+      그룹명: row[idxGroupName],
+      구성원목록: members,
+    },
+  });
+}
+
+/* -------------------------------------------------------------------------- */
+/* ✅ 기도제목 저장 및 조회                                                   */
+/* -------------------------------------------------------------------------- */
+
+function handleSavePrayer(data) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheetName = data.groupId;
+  let sheet = ss.getSheetByName(sheetName);
+  if (!sheet) sheet = ss.insertSheet(sheetName);
+
+  const headers = sheet.getLastRow() === 0
+    ? createPrayerHeaders(sheet, 6)
+    : sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+
+  const maxCols = (headers.length - 4) / 3;
+  const needed = Math.max(data.prayers.length, maxCols);
+
+  if (needed > maxCols) {
+    for (let i = maxCols + 1; i <= needed; i++) {
+      sheet.getRange(1, sheet.getLastColumn() + 1, 1, 3).setValues([[`기도제목${i}`, `R${i}`, `C${i}`]]);
+    }
+  }
+
+  const now = Utilities.formatDate(new Date(), "Asia/Seoul", "yyyy.MM.dd a h:mm:ss");
+  const prayerCells = [];
+  for (let i = 0; i < needed; i++) prayerCells.push(data.prayers[i] || "", "", "");
+  const row = [data.groupName, data.groupId, data.member, now, ...prayerCells];
+  sheet.appendRow(row);
+  // 🔔 Netlify notify 함수 호출 (해당 그룹 구독자 모두에게)
+UrlFetchApp.fetch("https://prayteam.creat1324.com/.netlify/functions/notify", {
+  method: "post",
+  contentType: "application/json",
+  payload: JSON.stringify({
+    groupId: data.groupId,
+    title: `${data.member}님이 새로운 기도제목을 작성했습니다.`,
+    message: data.prayers[0] || "(내용 없음)"
+  })
+});
+
+  return jsonOutput({ success: true, message: "저장 완료", time: now });
+}
+
+function createPrayerHeaders(sheet, count) {
+  const headers = ["그룹명", "그룹ID", "멤버이름", "작성시간"];
+  for (let i = 1; i <= count; i++) headers.push(`기도제목${i}`, `R${i}`, `C${i}`);
+  sheet.appendRow(headers);
+  return headers;
+}
+
+function handleGetPrayers(e) {
+  const groupId = e.parameter.groupId || "";
+  const member = e.parameter.member || "";
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(groupId);
+  if (!sheet) return jsonOutput({});
+
+  const data = sheet.getDataRange().getValues();
+  const headers = data[0];
+
+  const memberCol = headers.indexOf("멤버이름");
+  const timeCol = headers.indexOf("작성시간");
+
+  // 기도제목 / R / C 컬럼 인덱스 수집
+  const prayerCols = [];
+  const rCols = [];
+  const cCols = [];
+
+  headers.forEach((h, i) => {
+    if (typeof h !== "string") return;
+    if (h.startsWith("기도제목")) {
+      prayerCols.push(i);
+    } else if (/^R\d+$/.test(h)) {
+      rCols.push(i);
+    } else if (/^C\d+$/.test(h)) {
+      cCols.push(i);
+    }
+  });
+
+  // 해당 멤버의 "최신 행" 찾기 (아래에서 위로)
+  for (let i = data.length - 1; i >= 1; i--) {
+    const row = data[i];
+    if (String(row[memberCol]).trim() === member) {
+      const prayers = prayerCols.map(idx => row[idx] || "").filter(v => v !== "");
+      const responses = rCols.map(idx => row[idx] || "");
+      const comments = cCols.map(idx => row[idx] || "");
+
+      return jsonOutput({
+        groupId,
+        member,
+        prayers,
+        responses,
+        comments,
+        time: row[timeCol]
+      });
+    }
+  }
+
+  // 없으면 빈 객체
+  return jsonOutput({});
+}
+
+function handleGetPrayersAll(e) {
+  const groupId = e.parameter.groupId || "";
+  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(groupId);
+  if (!sheet) return jsonOutput([]);
+
+  const data = sheet.getDataRange().getValues();
+  if (data.length < 2) return jsonOutput([]);
+
+  const headers = data.shift().map(String);
+  const idxGroup = headers.indexOf("그룹명");
+  const idxMember = headers.indexOf("멤버이름");
+  const idxTime = headers.indexOf("작성시간");
+  const prayerCols = headers.map((h, i) => h.startsWith("기도제목") ? i : -1).filter(i => i !== -1);
+
+  const latest = {};
+  for (let i = data.length - 1; i >= 0; i--) {
+    const row = data[i];
+    const member = row[idxMember];
+    if (!member || latest[member]) continue;
+    latest[member] = {
+      그룹명: row[idxGroup],
+      멤버이름: member,
+      prayers: prayerCols.map(idx => row[idx]).filter(Boolean),
+      작성시간: row[idxTime],
+    };
+  }
+  return jsonOutput(Object.values(latest));
+}
+
+/* -------------------------------------------------------------------------- */
+/* ✅ 멤버 추가                                                               */
+/* -------------------------------------------------------------------------- */
+function handleAddMember(data) {
+  const { groupId, newMember } = data;
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName("그룹정보");
+
+  const rows = sheet.getDataRange().getValues();
+  const headers = rows[0];
+
+  const idxID = headers.indexOf("그룹ID");
+  const idxCount = headers.indexOf("구성원수");
+
+  // 구성원n 자동 탐색
+  const memberCols = headers
+    .map((h, i) => (h.startsWith("구성원") && h !== "구성원수") ? i : -1)
+    .filter((i) => i !== -1);
+
+  let rowIndex = rows.findIndex((r, i) => i > 0 && r[idxID] === groupId);
+  if (rowIndex === -1) {
+    return jsonOutput({ success: false, message: "그룹을 찾을 수 없습니다." });
+  }
+
+  const row = rows[rowIndex];
+
+  // 기존 구성원 로드
+  // MODIFIED: 문자열만 필터링하도록 수정
+  // MODIFIED: 모든 값 문자열로 변환하여 안전 파싱
+const current = memberCols
+  .map(i => String(row[i] || "").trim())
+  .filter(v => v !== "");
+
+
+
+  // 중복 체크 + 자동 숫자 증가
+  let finalName = newMember;
+  let cnt = 2;
+  while (current.includes(finalName)) {
+    finalName = newMember + cnt;
+    cnt++;
+  }
+
+  // 비어있는 컬럼 찾기
+  let targetCol = -1;
+  for (const col of memberCols) {
+    if (!row[col]) {
+      targetCol = col;
+      break;
+    }
+  }
+
+  // 구성원 칼럼 부족하면 한 칼럼 생성
+  if (targetCol === -1) {
+    targetCol = sheet.getLastColumn();
+    const newHeader = `구성원${memberCols.length + 1}`;
+    sheet.getRange(1, targetCol + 1).setValue(newHeader);
+  }
+
+  // 값 쓰기
+  sheet.getRange(rowIndex + 1, targetCol + 1).setValue(finalName);
+
+  // 구성원수 업데이트
+  sheet.getRange(rowIndex + 1, idxCount + 1).setValue(current.length + 1);
+
+  return jsonOutput({
+    success: true,
+    message: `${finalName} 추가 완료`,
+    count: current.length + 1,
+  });
+}
+
+/* -------------------------------------------------------------------------- */
+function getOrCreateSheet(name) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  let s = ss.getSheetByName(name);
+  if (!s) s = ss.insertSheet(name);
+  return s;
+}
+
+function jsonOutput(obj) {
+  return ContentService.createTextOutput(JSON.stringify(obj))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+function handleRenameMember(data) {
+  const { groupId, oldName, newName } = data;
+
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const groupSheet = ss.getSheetByName("그룹정보");
+  if (!groupSheet) return jsonOutput({ success: false, message: "그룹정보 시트를 찾을 수 없습니다." });
+
+  const rows = groupSheet.getDataRange().getValues();
+  const headers = rows[0];
+
+  const idxID = headers.indexOf("그룹ID");
+
+  // 구성원 컬럼 자동 탐색
+  const memberCols = headers
+    .map((h, i) => (h.startsWith("구성원") && h !== "구성원수") ? i : -1)
+    .filter(i => i !== -1);
+
+  // 대상 행 찾기
+  const rowIndex = rows.findIndex((r, i) => i > 0 && r[idxID] === groupId);
+  if (rowIndex === -1) {
+    return jsonOutput({ success: false, message: "해당 그룹을 찾을 수 없습니다." });
+  }
+
+  const row = rows[rowIndex];
+
+  // 구성원 목록에서 oldName → newName
+  let replaced = false;
+  memberCols.forEach(col => {
+    if (String(row[col]).trim() === oldName) {
+      groupSheet.getRange(rowIndex + 1, col + 1).setValue(newName);
+      replaced = true;
+    }
+  });
+
+  if (!replaced) {
+    return jsonOutput({ success: false, message: "기존 이름을 찾지 못했습니다." });
+  }
+
+  // --- [기도제목 시트] 멤버 이름 변경 ---
+  const prayerSheet = ss.getSheetByName(groupId);
+  if (prayerSheet) {
+    const dataRows = prayerSheet.getDataRange().getValues();
+    const headers2 = dataRows[0];
+    const idxMember = headers2.indexOf("멤버이름");
+
+    for (let i = 1; i < dataRows.length; i++) {
+      if (String(dataRows[i][idxMember]).trim() === oldName) {
+        prayerSheet.getRange(i + 1, idxMember + 1).setValue(newName);
+      }
+    }
+  }
+
+  return jsonOutput({
+    success: true,
+    message: `'${oldName}' → '${newName}' 이름 수정 완료`
+  });
+}
+
+function handleRenameGroup(e) {
+  Logger.log("=== ✏ handleRenameGroup 호출됨 ===");
+
+  let body = {};
+  try {
+    Logger.log("▶ raw body: " + e.postData.contents);
+    body = JSON.parse(e.postData.contents);
+  } catch (err) {
+    Logger.log("❌ JSON 파싱 오류: " + err);
+    return jsonOutput({ success: false, message: "JSON 파싱 실패" });
+  }
+
+  Logger.log("▶ 파싱된 body: " + JSON.stringify(body));
+
+  const groupId = body.groupId;
+  const newName = body.newName;
+
+  Logger.log("▶ groupId: " + groupId);
+  Logger.log("▶ newName: " + newName);
+
+  if (!groupId || !newName) {
+    Logger.log("❌ groupId 또는 newName 누락");
+    return jsonOutput({ success: false, message: "groupId 또는 newName 누락" });
+  }
+
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName("그룹정보");
+
+  if (!sheet) {
+    Logger.log("❌ 그룹정보 시트 없음");
+    return jsonOutput({ success: false, message: "그룹정보 시트를 찾을 수 없습니다." });
+  }
+
+  const rows = sheet.getDataRange().getValues();
+  const headers = rows[0];
+
+  const idxID = headers.indexOf("그룹ID");
+  const idxName = headers.indexOf("그룹명");
+
+  const rowIndex = rows.findIndex((r, i) => i > 0 && r[idxID] === groupId);
+
+  Logger.log("▶ rowIndex 찾은 결과: " + rowIndex);
+
+  if (rowIndex === -1) {
+    Logger.log("❌ 해당 그룹 행을 찾지 못함");
+    return jsonOutput({ success: false, message: "그룹을 찾을 수 없습니다." });
+  }
+
+  Logger.log("▶ 시트에 쓰는 값: " + newName);
+
+  sheet.getRange(rowIndex + 1, idxName + 1).setValue(newName);
+
+  Logger.log("✔ 그룹명 수정 완료");
+
+  return jsonOutput({
+    success: true,
+    message: "그룹명이 정상적으로 수정되었습니다."
+  });
+}
+
+function handleDeleteGroup(e) {
+  Logger.log("=== 🗑 handleDeleteGroup 호출됨 ===");
+
+  let data = {};
+  try {
+    Logger.log("▶ raw body: " + e.postData.contents);
+    data = JSON.parse(e.postData.contents);
+  } catch (err) {
+    Logger.log("❌ JSON 파싱 실패: " + err);
+  }
+
+  Logger.log("▶ 파싱된 data: " + JSON.stringify(data));
+
+  const groupId = data.groupId;
+  Logger.log("▶ groupId: " + groupId);
+
+  if (!groupId) {
+    Logger.log("❌ groupId 없음");
+    return jsonOutput({ success: false, message: "groupId가 없습니다." });
+  }
+
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+
+  const infoSheet = ss.getSheetByName("그룹정보");
+  if (!infoSheet) {
+    Logger.log("❌ 그룹정보 시트 없음");
+    return jsonOutput({ success: false, message: "그룹정보 시트를 찾을 수 없습니다." });
+  }
+
+  const rows = infoSheet.getDataRange().getValues();
+  const headers = rows[0];
+  const idxID = headers.indexOf("그룹ID");
+
+  const rowIndex = rows.findIndex((r, i) => i > 0 && r[idxID] === groupId);
+  Logger.log("▶ 삭제할 행 rowIndex: " + rowIndex);
+
+  if (rowIndex !== -1) infoSheet.deleteRow(rowIndex + 1);
+
+  const prayerSheet = ss.getSheetByName(groupId);
+  if (prayerSheet) {
+    Logger.log("▶ 기도제목 시트 삭제");
+    ss.deleteSheet(prayerSheet);
+  }
+
+  Logger.log("✔ 삭제 완료");
+
+  return jsonOutput({
+    success: true,
+    message: "그룹이 정상적으로 삭제되었습니다."
+  });
+}
+
+function handleSaveNote(e) {
+  const body = JSON.parse(e.postData.contents);
+  const { groupId, member, index, answer, comment } = body;
+
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName(groupId);
+  if (!sheet) return jsonOutput({ success: false, message: "sheet 없음" });
+
+  const data = sheet.getDataRange().getValues();
+  const headers = data[0];
+
+  const idxMember = headers.indexOf("멤버이름");
+  const idxR = headers.indexOf(`R${index}`);
+  const idxC = headers.indexOf(`C${index}`);
+
+  // 최신행 찾기
+  let target = -1;
+  for (let i = data.length - 1; i >= 1; i--) {
+    if (String(data[i][idxMember]).trim() === member) {
+      target = i + 1;
+      break;
+    }
+  }
+
+  if (target === -1) {
+    return jsonOutput({ success: false, message: "저장된 기도제목 없음" });
+  }
+
+  // 저장 (초기화 포함)
+  sheet.getRange(target, idxR + 1).setValue(answer || "");
+  sheet.getRange(target, idxC + 1).setValue(comment || "");
+
+  return jsonOutput({ success: true });
+}
+
+function handleAddGroup(e) {
+  let body = {};
+  try {
+    body = JSON.parse(e.postData.contents);
+  } catch (err) {
+    return jsonOutput({ success: false, message: "JSON 파싱 실패" });
+  }
+
+  const { adminId, groupName, members } = body;
+
+  if (!adminId || !groupName || !members || members.length === 0) {
+    return jsonOutput({ success: false, message: "필수 항목 누락" });
+  }
+
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName("그룹정보") || ss.insertSheet("그룹정보");
+
+  const rows = sheet.getDataRange().getValues();
+  const headers = rows[0];
+
+  // 🔥 새 컬럼 인덱스 (생성일 추가된 구조 기준)
+  const idxAdmin     = headers.indexOf("관리자ID");
+  const idxGroupName = headers.indexOf("그룹명");
+  const idxGroupId   = headers.indexOf("그룹ID");
+  const idxCreated   = headers.indexOf("생성일");     // ★ 생성일
+  const idxCount     = headers.indexOf("구성원수");
+
+  // 구성원 컬럼 자동 탐색
+  const memberCols = headers
+    .map((h, i) => (h.startsWith("구성원") && h !== "구성원수" ? i : -1))
+    .filter(i => i !== -1);
+
+  // 그룹ID 자동 생성
+  const newGroupId = "G" + Math.random().toString(36).substring(2, 14);
+
+  // 생성일(yyyy-MM-dd HH:mm:ss KST)
+  const createdAt = Utilities.formatDate(new Date(), "Asia/Seoul", "yyyy-MM-dd HH:mm:ss");
+
+  // 구성원 칼럼 부족하면 자동 확장
+  while (members.length > memberCols.length) {
+    const nextIndex = memberCols.length + 1;
+    sheet.getRange(1, sheet.getLastColumn() + 1).setValue("구성원" + nextIndex);
+    memberCols.push(sheet.getLastColumn() - 1);
+  }
+
+  // 새 행 템플릿 생성 (전체 길이에 맞춰 빈칸으로)
+  const newRow = new Array(headers.length).fill("");
+
+  // 🔥 새 구조에 맞게 값 넣기
+  newRow[idxAdmin]     = adminId;
+  newRow[idxGroupName] = groupName;
+  newRow[idxGroupId]   = newGroupId;
+  newRow[idxCreated]   = createdAt;        // ★ 생성일 넣기
+  newRow[idxCount]     = members.length;
+
+  // 구성원들 넣기
+  members.forEach((m, i) => {
+    const col = memberCols[i];
+    newRow[col] = m;
+  });
+
+  sheet.appendRow(newRow);
+
+  return jsonOutput({
+    success: true,
+    message: "그룹 추가 완료",
+    groupId: newGroupId,
+    createdAt
+  });
+}
+
+function handleAddSharedGroup(e) {
+  let body = {};
+  try {
+    body = JSON.parse(e.postData.contents);
+  } catch (err) {
+    return jsonOutput({ success: false, message: "JSON 파싱 실패" });
+  }
+
+  const { adminId, groupId } = body;
+
+  if (!adminId || !groupId) {
+    return jsonOutput({ success: false, message: "필수 값 누락" });
+  }
+
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const infoSheet = ss.getSheetByName("그룹정보");
+  if (!infoSheet) {
+    return jsonOutput({ success: false, message: "그룹정보 시트 없음" });
+  }
+
+  const rows = infoSheet.getDataRange().getValues();
+  const headers = rows[0];
+  const idxGroupId = headers.indexOf("그룹ID");
+  const idxGroupName = headers.indexOf("그룹명");
+
+  // 구성원 컬럼 자동 탐색
+  const memberCols = headers
+    .map((h, i) => (h.startsWith("구성원") && h !== "구성원수") ? i : -1)
+    .filter(i => i !== -1);
+
+  // 복제할 원본 그룹 찾기
+  const source = rows.find(r => r[idxGroupId] === groupId);
+  if (!source) {
+    return jsonOutput({ success: false, message: "원본 그룹을 찾을 수 없습니다." });
+  }
+
+  const groupName = source[idxGroupName];
+
+  const members = memberCols
+    .map(i => String(source[i] || "").trim())
+    .filter(v => v !== "");
+
+  // ➕ 새 그룹ID 생성
+  const newGroupId = "G" + Math.random().toString(36).substring(2, 14);
+
+  // 생성일
+  const createdAt = Utilities.formatDate(new Date(), "Asia/Seoul", "yyyy-MM-dd HH:mm:ss");
+
+  const idxAdmin  = headers.indexOf("관리자ID");
+  const idxCreated = headers.indexOf("생성일");
+  const idxCount = headers.indexOf("구성원수");
+
+  // 기존 헤더 길이만큼 빈 배열 생성
+  const newRow = new Array(headers.length).fill("");
+
+  // 값 넣기
+  newRow[idxAdmin] = adminId;
+  newRow[idxGroupName] = groupName + " (공유)";
+  newRow[idxGroupId] = newGroupId;
+  newRow[idxCreated] = createdAt;
+  newRow[idxCount] = members.length;
+
+  members.forEach((m, i) => {
+    const col = memberCols[i];
+    newRow[col] = m;
+  });
+
+  infoSheet.appendRow(newRow);
+
+  return jsonOutput({
+    success: true,
+    message: "공유 그룹이 내 그룹으로 복제 완료",
+    groupId: newGroupId
+  });
+}
+
+/* -------------------------------------------------------------------------- */
+/*  📌 페이지 방문 로그 기록                                                  */
+/* -------------------------------------------------------------------------- */
+
+function handleAddLog(e) {
+  let body = {};
+  try {
+    body = JSON.parse(e.postData.contents);
+  } catch (err) {
+    return jsonOutput({ success: false, message: "JSON 파싱 실패" });
+  }
+
+  const { page, adminId, groupId, member, from, device, browser } = body;
+
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName("방문로그") || ss.insertSheet("방문로그");
+
+  // 🔥 헤더 통합 (10개로 고정)
+  if (sheet.getLastRow() === 0) {
+    sheet.appendRow([
+      "날짜","시간","페이지","adminId","groupId","member",
+      "from","device","browser","체류초"
+    ]);
+  }
+
+  const now = new Date();
+  const dateStr = Utilities.formatDate(now, "Asia/Seoul", "yyyy-MM-dd");
+  const timeStr = Utilities.formatDate(now, "Asia/Seoul", "HH:mm:ss");
+
+  // 🔥 체류초는 빈칸
+  sheet.appendRow([
+    dateStr, timeStr, page || "", adminId || "", groupId || "",
+    member || "", from || "", device || "", browser || "", ""
+  ]);
+
+  return jsonOutput({ success: true });
+}
+
+function handleLogStay(e) {
+  let body = {};
+  try {
+    body = JSON.parse(e.postData.contents);
+  } catch (err) {
+    return jsonOutput({ success: false, message: "JSON 파싱 실패" });
+  }
+
+  const { page, groupId, stay, time } = body;
+
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName("방문로그") || ss.insertSheet("방문로그");
+
+  // 🔥 헤더 통합
+  if (sheet.getLastRow() === 0) {
+    sheet.appendRow([
+      "날짜","시간","페이지","adminId","groupId","member",
+      "from","device","browser","체류초"
+    ]);
+  }
+
+  const dateObj = new Date(time);
+  const dateStr = Utilities.formatDate(dateObj, "Asia/Seoul", "yyyy-MM-dd");
+  const timeStr = Utilities.formatDate(dateObj, "Asia/Seoul", "HH:mm:ss");
+
+  sheet.appendRow([
+    dateStr, timeStr, page || "", "", groupId || "",
+    "", "", "", "", stay || 0
+  ]);
+
+  return jsonOutput({ success: true });
+}
+

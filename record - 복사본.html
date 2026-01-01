@@ -1,0 +1,1387 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <title>기도제목 기록</title>
+  <script src="/app-config.js"></script>
+
+  <style>
+:root {
+  --bg-gradient: radial-gradient(circle at top, #1c1f3a, #0d0e16);
+  --text-bright: #ffffff;
+  --text-dim: #cccccc;
+  --accent-gold: #ffdf6b;
+  --blue: #4f9cff;
+  --blue-dark: #367de3;
+  --card-bg: rgba(255, 255, 255, 0.07);
+  --border-light: rgba(255, 255, 255, 0.2);
+  --shadow: 0 4px 14px rgba(255, 255, 255, 0.1);
+  --shadow-hover: 0 6px 18px rgba(255, 255, 255, 0.15);
+  --radius: 14px;
+  --line-height: 1.6;
+}
+
+/* 전체 구조 */
+body {
+  font-family: "Noto Sans KR", sans-serif; /* 같은 폰트 */
+  background: var(--bg-gradient);
+  color: var(--text-bright);
+  margin: 0;
+  padding: 20px;
+  text-align: center;
+  min-height: 100vh;
+  font-size: clamp(15px, 2.4vw, 18px);
+}
+
+/* 상단 제목 영역 */
+.top-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  position: sticky;
+  top: 0;
+  background: var(--bg-gradient);
+  z-index: 10;
+  padding: 6px 10px;
+}
+.top-bar h2 {
+  flex: 1;
+  text-align: center;
+  font-weight: 700;
+  color: var(--accent-gold);
+  margin: 0;
+  font-size: clamp(24px, 5vw, 34px);
+}
+.home-btn, .share-btn {
+  background: none;
+  border: none;
+  color: var(--accent-gold);
+  cursor: pointer;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+  font-size: clamp(22px, 4vw, 30px);
+}
+.home-btn:hover, .share-btn:hover {
+  transform: scale(1.2);
+  opacity: 0.85;
+}
+
+/* 개별 멤버 섹션 */
+.member-section {
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 16px 14px;
+  margin-bottom: 20px;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+.member-section:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-hover);
+}
+
+.member-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+  gap: 10px;
+}
+.member-name {
+  flex: 1;
+  text-align: left;
+  font-size: clamp(21px, 2.8vw, 24px);
+  font-weight: 600;
+  color: #ffdf6b;
+  display: flex;
+  align-items: center;
+  height: 38px;
+}
+.save-btn {
+  background: var(--blue);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 0 16px;
+  font-size: clamp(16px, 2.5vw, 19px);
+  height: 38px;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.2s;
+}
+.save-btn:hover { background: var(--blue-dark); transform: translateY(-1px); }
+.save-btn:disabled { background: #555; color: #ccc; cursor: not-allowed; }
+
+/* 로딩 */
+#loadingPrayers {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: #ffdf6b;
+  margin-top: 30px;
+}
+#loadingPrayers .mini-loader {
+  border: 3px solid rgba(255,255,255,0.2);
+  border-top: 3px solid #ffdf6b;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  animation: spin 1s linear infinite;
+}
+@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+/* ✅ 기도제목 리스트 구조 */
+.prayer-container {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-bottom: 3px;
+}
+
+/* ✅ 기도제목 한 줄 높이 축소 + 왼쪽 정렬 */
+.prayer-item {
+  display: flex;
+  align-items: flex-start; /* 가운데 정렬로 균형 있게 */
+  position: relative;
+  margin-bottom: 2px;
+  min-height: 36px; /* 높이 줄임 */
+}
+
+/* 번호 왼쪽 간격 축소 */
+.prayer-number {
+  font-size: 17px;
+  font-weight: 600;
+  color: white;
+  width: 10px; /* 폭 줄임 */
+  text-align: right;
+  margin-right: 6px; /* 간격 줄임 */
+  user-select: none;
+  line-height: 1.35;   /* ⭐ 번호 세로 기준을 텍스트와 맞춤 */
+  margin-top: 3px;     /* ⭐ 아주 살짝 내려감 */
+}
+
+/* 입력칸 왼쪽으로 더 당김 + 높이 축소 */
+.prayer-textarea {
+  flex: none;          /* ✅ flex 계산 비활성화 */
+  width: 88%;       
+  resize: none;
+  min-height: 22px;
+  max-height: 140px;
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.3; /* 한 줄 간격 줄임 */
+  border: none;             /* ✅ 테두리 제거 */
+  outline: none;            /* ✅ 포커스 시 파란 외곽선도 제거 */
+  border-radius: 6px;
+  outline: none;
+  background-color: #2a2a3a;
+  color: #eee;
+  font-family: "Noto Sans KR", sans-serif; /* 이름과 동일한 폰트 */
+  transition: border-color 0.2s;
+}
+
+/* hover 시 색감 살짝 강조 */
+.prayer-textarea:focus {
+  border-color: var(--accent-gold);
+}
+.delete-btn {
+  align-items: flex-end;      /* 수직 중앙정렬 */
+  border: none;
+  background: transparent;
+  color: #eee;
+  font-size: 20px;
+  width: 32px;
+  height: 32px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.delete-btn:hover {
+  background-color: rgba(255, 128, 128, 0.15);
+  transform: scale(1.15);
+}
+
+/* 추가 버튼 */
+.add-btn {
+  background: transparent;     /* ✔ 투명 배경 */
+  border: none;       /* ✔ 테두리 흰색 */
+  color: #e5e5e5;                 /* ✔ + 아이콘 흰색 */
+  border-radius: 10px;
+  padding: 10px 0;
+  width: 48px;                    /* ✔ 정사각형 버튼 느낌 */
+  height: 34px;
+  font-size: 15px;                /* ✔ + 더 크고 선명하게 */
+  cursor: pointer;
+  transition: 0.2s;
+}
+.add-btn:hover {
+  color: #ffffff;              /* ✔ hover 시 더 밝게 */
+  transform: scale(1.1); 
+}
+
+/* 시간 표시 */
+.timestamp {
+  text-align: right;
+  font-size: clamp(13px, 2.2vw, 15px);
+  color: var(--text-dim);
+  margin-top: 6px;
+}
+
+.bottom-row {
+  position: relative;        /* 자식 요소 기준으로 배치 가능하게 */
+  display: flex;
+  justify-content: center;   /* 버튼을 가운데 정렬 */
+  align-items: center;
+  margin-top: 6px;
+}
+
+/* 시간만 오른쪽 끝으로 이동 */
+.bottom-row .timestamp {
+  position: absolute;
+  right: 10px;               /* 오른쪽 여백 */
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.add-btn {
+  margin: 0;
+  padding: 6px 14px;
+}
+
+.timestamp {
+  margin: 0;
+  font-size: 14px;
+  color: var(--text-dim);
+}
+
+/* 멤버 추가 로딩 스피너 */
+.member-add-loading {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-top: 2px solid white;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+
+.saved-success {
+  background-color: #4ade80 !important; /* 초록색 */
+  transition: background-color 0.4s;
+}
+
+/* ✨ 전체 배경 입자 캔버스 */
+#particleCanvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none; /* 화면 버튼 클릭 방해 X */
+  z-index: 2; /* 카드보다 뒤, 배경보다 위 */
+  opacity: 0.55;
+}
+
+</style>
+
+</head>
+
+<body>
+  <div class="top-bar">
+    <button class="home-btn" onclick="goHome()">🏠</button>
+    <h2 id="title">그룹명 기도제목</h2>
+    <button class="share-btn" onclick="shareGroup()" aria-label="공유하기">
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M12 3v12"/>
+    <path d="M16 7l-4-4-4 4"/>
+    <path d="M19 15v5H5v-5"/>
+  </svg>
+</button>
+
+	<button id="notifyBtn" class="notify-btn">🔔 알림 설정</button>
+
+  </div>
+
+<!-- ✅ 새 로딩 애니메이션 (index.html과 동일) -->
+<div id="loadingPrayers">
+  <div class="mini-loader"></div>
+  <p>기도제목 불러오는 중...</p>
+</div>
+
+<div id="memberContainer" style="display:none;"></div>
+
+<!-- ✅ 멤버 추가 UI -->
+<div id="addMemberArea" style="margin-top:30px; text-align:center;">
+  <button id="openAddMemberBtn"
+     style="padding:10px 18px; font-size:18px; border-radius:10px; background:#4f9cff; color:white; border:none; cursor:pointer;">
+     ➕ 새 멤버 추가
+  </button>
+
+  <div id="addMemberForm" style="display:none; margin-top:15px;">
+    <input id="newMemberName"
+      placeholder="새 멤버 이름 입력"
+      style="padding:10px; font-size:18px; width:70%; border-radius:10px; border:none; outline:none;" />
+
+    <button id="saveNewMemberBtn"
+      style="padding:10px 18px; font-size:18px; border-radius:10px; background:#ffdf6b; margin-left:10px; cursor:pointer;">
+      저장
+    </button>
+  </div>
+</div>
+
+<!-- ✨ 빛입자 + 십자가 입자 효과 -->
+<canvas id="particleCanvas"></canvas>
+
+  <script>
+    const scriptURL = CONFIG.GAS_URL;
+
+    // ✅ Service Worker 등록 및 자동 업데이트 감지
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("/sw.js").then((reg) => {
+        console.log("✅ Service Worker 등록 완료:", reg.scope);
+        reg.addEventListener("updatefound", () => {
+          const newSW = reg.installing;
+          newSW.addEventListener("statechange", () => {
+            if (newSW.state === "installed" && navigator.serviceWorker.controller) {
+              alert("🔄 새로운 버전이 배포되었습니다. 페이지를 새로고침합니다.");
+              window.location.reload();
+            }
+          });
+        });
+      }).catch(err => console.error("❌ Service Worker 등록 실패:", err));
+    }
+
+    // ✅ URL에서 그룹 ID 파라미터 추출
+    const params = new URLSearchParams(window.location.search);
+    const groupId = params.get("gid");
+
+/* -------------------------------------------
+   🟦 멤버 이름 롱프레스 → 이름 수정 모달 호출
+------------------------------------------- */
+// MODIFIED: 롱프레스 변수
+let renamePressTimer = null;
+let enterTime = Date.now();
+
+function startRenamePress(e, member) {
+  renamePressTimer = setTimeout(() => {
+    openInlineRenameBox(member, e.target.closest(".member-section"));
+  }, 700);
+}
+
+/* --------------------------------------------------
+   🟦 인라인 멤버 이름 수정 박스 생성
+-------------------------------------------------- */
+function openInlineRenameBox(member, sectionEl) {
+
+  // 이미 열려있으면 제거
+  if (renameBox) renameBox.remove();
+
+  renameTarget = member;
+
+  // 박스 DOM 생성
+  renameBox = document.createElement("div");
+  renameBox.style.background = "#2a2a3a";
+  renameBox.style.padding = "14px";
+  renameBox.style.marginTop = "12px";
+  renameBox.style.borderRadius = "10px";
+  renameBox.style.boxShadow = "0 4px 14px rgba(0,0,0,0.3)";
+  renameBox.style.textAlign = "left";
+
+  renameBox.innerHTML = `
+    <div style="color:#ffdf6b; font-size:18px; margin-bottom:8px;">
+      📝 멤버 이름 수정
+    </div>
+
+    <input id="renameInput"
+      style="width:90%; padding:10px; font-size:18px; border-radius:8px; border:none; outline:none;
+      background:#fff; color:#000;" 
+      value="${member}"/>
+
+    <div style="margin-top:12px; display:flex; gap:10px;">
+      <button id="saveInlineRenameBtn" onclick="saveInlineRename()" 
+  style="padding:8px 14px; background:#4f9cff; border:none; border-radius:8px;">
+  수정
+</button>
+
+
+      <button onclick="cancelInlineRename()" 
+        style="padding:8px 14px; background:#777; border:none; border-radius:8px;">취소</button>
+    </div>
+  `;
+
+  // 카드 바로 아래에 삽입
+  sectionEl.insertAdjacentElement("afterend", renameBox);
+}
+
+function cancelInlineRename() {
+  if (renameBox) renameBox.remove();
+  renameBox = null;
+  renameTarget = null;
+}
+
+/* --------------------------------------------------
+   🟦 이름 저장 (GAS renameMember 필요)
+-------------------------------------------------- */
+async function saveInlineRename() {
+  const newName = document.getElementById("renameInput").value.trim();
+  if (!newName) return alert("이름을 입력하세요!");
+
+  // 🔵 1) 수정 버튼 로딩 애니메이션 시작
+  const btn = document.getElementById("saveInlineRenameBtn");
+  if (btn) {
+    btn.innerHTML = `⏳ 저장중...`;
+    btn.disabled = true;
+  }
+
+  try {
+    const res = await fetch(scriptURL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        mode: "renameMember",
+        groupId,
+        oldName: renameTarget,
+        newName
+      })
+    });
+
+    const json = await res.json();
+    console.log("🔄 이름 저장 결과:", json);
+
+    if (!json.success) {
+      alert("이름 수정 실패: " + json.message);
+      if (btn) {
+        btn.innerHTML = "수정";
+        btn.disabled = false;
+      }
+      return;
+    }
+
+    // 🟢 2) 저장됨 애니메이션
+    if (btn) {
+      btn.innerHTML = "✔ 저장됨";
+      btn.style.backgroundColor = "#4ade80"; // 초록색
+    }
+
+    // 잠깐 “저장됨” 유지
+    await new Promise(r => setTimeout(r, 800));
+
+    // UI 닫기
+    cancelInlineRename();
+
+    // 화면 리로드
+    await loadGroupMembers();
+
+  } catch (err) {
+    console.error(err);
+    alert("오류 발생: 저장하지 못했습니다.");
+
+    if (btn) {
+      btn.innerHTML = "수정";
+      btn.disabled = false;
+    }
+  }
+}
+
+function cancelRenamePress() {
+  clearTimeout(renamePressTimer);
+}
+
+
+    // ✅ 그룹 및 구성원 불러오기
+async function loadGroupMembers() {
+      const adminId = localStorage.getItem("adminId");           // MODIFIED
+      const isAdminMode =
+        adminId !== null && adminId !== undefined && adminId !== ""; // MODIFIED
+      const isAdmin = isAdminMode;                               // MODIFIED: 별칭 추가로 에러 방지
+
+      let group = null;
+
+      try {
+        const url = isAdmin
+          ? `${scriptURL}?mode=getGroups&adminId=${adminId}`      // 기존 로직 그대로 사용
+          : `${scriptURL}?mode=getGroupById&groupId=${groupId}`;
+        const res = await fetch(url);
+        const json = await res.json();
+
+        group = isAdmin
+          ? json.groups?.find(g => g.그룹ID === groupId)
+          : json.group;
+
+      } catch (err) {
+        console.error("❌ 그룹 불러오기 오류:", err);
+      }
+
+      const title = document.getElementById("title");
+      const loading = document.getElementById("loadingPrayers");
+      const container = document.getElementById("memberContainer");
+
+      if (!group) {
+        title.textContent = "그룹을 찾을 수 없습니다.";
+        loading.textContent = "⚠️ 그룹 정보가 존재하지 않습니다.";
+        return;
+      }
+
+      title.textContent = `${group.그룹명} 기도제목`;
+      loading.style.display = "none";
+      container.style.display = "block";
+
+// ⚡ 구성원 목록은 시트 칼럼 대신 전체 기도제목에서 직접 추출 (최고 안정 방식)
+// MODIFIED: 구성원 목록을 그룹정보 시트에서 직접 가져옴
+let members = [];
+try {
+  const res = await fetch(`${scriptURL}?mode=getGroupById&groupId=${groupId}`);
+  const json = await res.json();
+  members = json.group?.구성원목록 || [];
+} catch (e) {
+  console.warn("❗ 구성원 목록 생성 오류:", e);
+  members = [];
+}
+
+console.log("🔍 최종 members:", members);
+
+      renderMembers(members, group.그룹ID, group.그룹명);
+    }
+
+// MODIFIED: 멤버 추가 후 화면을 즉시 다시 렌더링하는 함수
+async function refreshMembersAfterAdd() {
+  console.log("🔄 [UI] 멤버 추가 후 즉시 멤버 목록 새로고침 시작");
+
+  try {
+    // 1) 그룹정보 시트에서 구성원 다시 가져오기
+    const res = await fetch(`${scriptURL}?mode=getGroupById&groupId=${groupId}`);
+    const json = await res.json();
+
+    if (!json.group) {
+      console.error("❌ 새 멤버 반영 실패: 그룹 정보 없음");
+      return;
+    }
+
+    const group = json.group;
+    const members = group.구성원목록;
+
+    console.log("🆕 [UI] 새로 업데이트된 멤버 목록:", members);
+
+    // 2) 즉시 리렌더링
+    renderMembers(members, groupId, group.그룹명);
+
+  } catch (err) {
+    console.error("❌ refreshMembersAfterAdd() 오류:", err);
+    alert("멤버는 추가되었지만, 화면 갱신 중 오류가 발생했습니다.");
+  }
+}
+
+// ✅ 그룹 전체 기도제목 한 번에 가져오기
+async function loadAllPrayers(groupId) {
+  const res = await fetch(`${scriptURL}?mode=getPrayersAll&groupId=${groupId}`);
+  return await res.json(); // [{멤버이름, prayers, 작성시간}, ...]
+}
+
+// ✅ 기도제목 입력칸 추가 함수 (반드시 전역에 추가)
+function addPrayerField(container) {
+  const wrapper = document.createElement("div");
+  wrapper.className = "prayer-item";
+
+  const index = container.querySelectorAll(".prayer-item").length + 1;
+
+  // 번호
+  const num = document.createElement("span");
+  num.className = "prayer-number";
+  num.textContent = `${index}.`;
+
+  // 입력칸
+  const textarea = document.createElement("textarea");
+  textarea.className = "prayer-textarea";
+  textarea.rows = 1;
+  textarea.placeholder = "기도제목을 입력하세요...";
+
+  // 높이 자동 조정 (2줄 이상도 자연스럽게)
+  const autoResize = () => {
+    textarea.style.height = "auto";
+    const newHeight = Math.min(textarea.scrollHeight, 160);
+    textarea.style.height = newHeight + "px";
+  };
+  textarea.addEventListener("input", () => {
+    autoResize();
+    textarea.closest(".member-section").querySelector(".save-btn").disabled = false;
+  });
+  setTimeout(autoResize, 0);
+
+  // 삭제 버튼
+  const del = document.createElement("button");
+  del.className = "delete-btn";
+  del.textContent ="–"// "\u2296"; // ⊖ (원 안의 마이너스)
+  del.onclick = () => {
+    wrapper.remove();
+    const items = container.querySelectorAll(".prayer-item");
+    items.forEach((el, i) => el.querySelector(".prayer-number").textContent = `${i + 1}.`);
+    container.closest(".member-section").querySelector(".save-btn").disabled = false;
+  };
+
+  wrapper.append(num, textarea, del);
+  container.appendChild(wrapper);
+
+  // 항상 ❌ 표시되게
+  del.style.display = "block";
+  return textarea;
+}
+
+async function renderMembers(members, groupId, groupName) {
+  const container = document.getElementById("memberContainer");
+  const loader = document.getElementById("loadingPrayers");
+  container.innerHTML = "";
+  loader.style.display = "flex";
+
+  try {
+    const allData = await loadAllPrayers(groupId);
+    console.log("📦 [DEBUG] loadAllPrayers() 결과:", allData);
+
+    if (!Array.isArray(allData)) throw new Error("서버 응답이 배열이 아닙니다.");
+
+    const prayerMap = {};
+    allData.forEach(p => (prayerMap[p.멤버이름] = p));
+
+    const fragment = document.createDocumentFragment();
+
+    for (const member of members) {
+      const section = document.createElement("div");
+      section.className = "member-section";
+
+      // 헤더
+      const header = document.createElement("div");
+      header.className = "member-header";
+      header.innerHTML = `
+        <div class="member-name"
+     onmousedown="startRenamePress(event, '${member}')"     
+     onmouseup="cancelRenamePress()"                           
+     onmouseleave="cancelRenamePress()"                       
+     ontouchstart="startRenamePress(event, '${member}')"       
+     ontouchend="cancelRenamePress()">                         
+  ${member}
+
+  <button class="note-btn"
+  onclick="location.href='note.html?groupId=${groupId}&groupName=${groupName}&member=${member}'"
+  style="margin-left:8px; font-size:18px; background:none; border:none; cursor:pointer;">
+  📝
+</button>
+
+</div>
+<!-- // MODIFIED: 롱프레스 이벤트 추가 -->
+
+        <button id="save-${member}" class="save-btn" disabled
+          onclick="savePrayer('${groupId}','${member}', this, '${groupName}')">수정</button>
+      `;
+
+      const prayerContainer = document.createElement("div");
+      prayerContainer.className = "prayer-container";
+
+      const data = prayerMap[member];
+      const prayers = [];
+
+      console.log(`🧩 [${member}] 원시데이터:`, data);
+
+      if (data) {
+        if (Array.isArray(data.prayers)) {
+          console.log(`🧮 [${member}] prayers 배열 감지 (${data.prayers.length}개):`, data.prayers);
+          prayers.push(...data.prayers.filter(p => p && p.trim() !== ""));
+        } else {
+          for (let i = 1; i <= 6; i++) {
+            const key = `기도제목${i}`;
+            if (data[key] && data[key].trim() !== "") prayers.push(data[key]);
+          }
+          if (prayers.length === 0 && data.기도제목) prayers.push(data.기도제목);
+          console.log(`📋 [${member}] 구버전 필드 스캔 결과 (${prayers.length}개):`, prayers);
+        }
+      } else {
+        console.warn(`⚠️ [${member}] 데이터 없음`);
+      }
+
+      // ✅ textarea 생성
+      if (prayers.length > 0) {
+        prayers.forEach(text => {
+          const t = addPrayerField(prayerContainer);
+          t.value = text;
+          t.style.height = "auto";
+          t.style.height = t.scrollHeight + "px";
+        });
+      } else {
+        addPrayerField(prayerContainer);
+      }
+
+      // 추가 버튼
+      const addBtn = document.createElement("button");
+      addBtn.className = "add-btn";
+      addBtn.textContent = "  ➕  ";
+      addBtn.onclick = () => addPrayerField(prayerContainer);
+
+      // 타임스탬프
+      const timestamp = document.createElement("div");
+      timestamp.className = "timestamp";
+      timestamp.id = `time-${member}`;
+      timestamp.textContent = data?.작성시간 ? timeAgo(data.작성시간) : "작성 전";
+
+      const bottomRow = document.createElement("div");
+bottomRow.className = "bottom-row";
+bottomRow.append(addBtn, timestamp);
+
+section.append(header, prayerContainer, bottomRow);
+      fragment.appendChild(section);
+
+      console.log(`✅ [${member}] 렌더 완료 (${prayers.length}개 기도제목)`);
+    }
+
+    container.appendChild(fragment);
+    console.log(`🎯 전체 렌더 완료 (${members.length}명)`);
+  } catch (err) {
+    console.error("❌ 전체 기도제목 불러오기 오류:", err);
+    container.innerHTML = `<p style="color:#ff8080">불러오기 실패: ${err.message}</p>`;
+  } finally {
+    loader.style.display = "none";
+  }
+}
+
+    // ✅ 최근 기도제목 불러오기
+    async function loadRecentPrayer(groupId, member, textarea) {
+      try {
+        const res = await fetch(`${scriptURL}?mode=getPrayers&groupId=${encodeURIComponent(groupId)}&member=${encodeURIComponent(member)}`);
+        const data = await res.json();
+        if (data && (data.prayers || data.prayer)) {
+          const prayerText = Array.isArray(data.prayers)
+            ? data.prayers.filter(p => p && p.trim() !== "").join("\n")
+            : data.prayer || "";
+          textarea.value = prayerText;
+          document.getElementById(`time-${member}`).textContent = timeAgo(data.time);
+          setTimeout(() => adjustHeight(textarea), 0);
+        }
+      } catch (err) {
+        console.error("기도제목 불러오기 오류:", err);
+      }
+
+      setTimeout(() => {
+        document.querySelectorAll("textarea").forEach(el => {
+          el.style.height = "auto";
+          el.style.height = el.scrollHeight + 8 + "px";
+        });
+      }, 600);
+    }
+
+    // ✅ 기도제목 저장
+    async function savePrayer(groupId, member, btn, groupName) {
+  btn.textContent = "저장 중...";
+  btn.disabled = true;
+
+  // 🔍 이 멤버 섹션 찾기
+  const section = btn.closest(".member-section");
+  const textareas = section.querySelectorAll(".prayer-textarea");
+
+  // 🔍 textarea 값 수집
+  const prayers = [...textareas]
+    .map(t => t.value.trim())
+    .filter(t => t.length > 0);
+
+  if (prayers.length === 0) {
+    alert("🙏 최소 1개 이상의 기도제목을 입력하세요!");
+    btn.textContent = "저장";
+    btn.disabled = false;
+    return;
+  }
+
+  const payload = {
+    mode: "savePrayer",
+    groupId,
+    groupName,
+    member,
+    prayers
+  };
+
+  try {
+    const res = await fetch(scriptURL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    const json = await res.json();
+    console.log("💾 저장결과:", json);
+
+    if (!json.success) {
+      alert("⚠️ 저장 실패: " + json.message);
+      btn.textContent = "저장";
+      btn.disabled = false;
+      return;
+    }
+
+    // ⭐ 성공 애니메이션
+    btn.textContent = "저장됨 ✓";
+    btn.style.background = "#4ade80";
+
+    setTimeout(() => {
+      btn.textContent = "저장";
+      btn.style.background = "";
+      btn.disabled = false;
+    }, 1500);
+
+  } catch (err) {
+    console.error("❌ 저장오류:", err);
+    btn.textContent = "저장 실패";
+    btn.disabled = false;
+  }
+}
+
+
+    // ✅ textarea 높이 자동 조정
+    function adjustHeight(el) {
+      if (!el) return;
+      el.style.height = "auto";
+      el.style.height = Math.max(el.scrollHeight + 8, 60) + "px";
+    }
+
+    // ✅ 시간 변환
+    function timeAgo(isoTime) {
+	  if (!isoTime) return "작성시간 없음";
+
+	  console.log("🕒 [timeAgo] 입력값:", isoTime);
+
+	  // ✅ 공백과 점 처리 통일
+	  const clean = isoTime.replace(/\s+/g, " ").replace(/\. /g, ".").trim();
+	  console.log("🧹 [timeAgo] 정리된 문자열:", clean);
+
+	  let past = new Date(clean);
+	  console.log("📅 [timeAgo] 1차 Date 파싱:", past, " → 유효?", !isNaN(past));
+
+	  // ✅ "2025.11.09 PM 4:33:39" / "2025. 9. 15. 오후 9:11:51" 대응
+	  if (isNaN(past)) {
+		const parsed = clean.match(
+		  /(\d{4})[.\-\/](\d{1,2})[.\-\/](\d{1,2})\.?\s*(?:오전|오후|AM|PM|am|pm)?\s*(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?\s*(오전|오후|AM|PM|am|pm)?/
+		);
+		console.log("🔍 [timeAgo] 정규식 매칭:", parsed);
+
+		if (parsed) {
+		  // ✅ 오전/오후 위치가 앞뒤로 와도 모두 인식
+		  let [_, y, m, d, h, min, s = "00", ampm] = parsed;
+		  h = parseInt(h, 10);
+		  const all = parsed.join(" ");
+
+		  const hasPM = /PM|pm|오후/.test(all);
+		  const hasAM = /AM|am|오전/.test(all);
+
+		  if (hasPM && h < 12) h += 12;
+		  if (hasAM && h === 12) h = 0;
+
+		  const formatted = `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(
+			2,
+			"0"
+		  )}T${String(h).padStart(2, "0")}:${String(min).padStart(2, "0")}:${String(
+			s
+		  ).padStart(2, "0")}`;
+
+		  console.log("🧩 [timeAgo] 재조합된 날짜 문자열:", formatted);
+		  past = new Date(formatted);
+		  console.log("📅 [timeAgo] 2차 Date 파싱:", past, " → 유효?", !isNaN(past));
+		}
+	  }
+
+	  if (isNaN(past)) {
+		console.warn("⚠️ [timeAgo] 유효하지 않은 날짜입니다:", isoTime);
+		return "시간 오류";
+	  }
+
+	  const diff = (Date.now() - past) / 1000;
+	  if (diff < 60) return "방금 전";
+	  if (diff < 3600) return `${Math.floor(diff / 60)}분 전`;
+	  if (diff < 86400) return `${Math.floor(diff / 3600)}시간 전`;
+	  if (diff < 2592000) return `${Math.floor(diff / 86400)}일 전`;
+	  return `${Math.floor(diff / 2592000)}달 전`;
+	}
+
+
+    // ✅ 홈 버튼
+    function goHome() {
+      const adminId = localStorage.getItem("adminId");
+      if (!adminId) return (window.location.href = "index.html");
+      window.location.href = "index.html?fromRecord=1";
+    }
+
+    // ✅ 공유 버튼
+    function shareGroup() {
+      const url = window.location.href;
+      if (navigator.share) {
+        navigator.share({
+          title: document.getElementById("title").textContent,
+          text: "기도제목 페이지를 함께 보세요",
+          url,
+        });
+      } else {
+        navigator.clipboard.writeText(url);
+        alert("📋 링크가 복사되었습니다!");
+      }
+    }
+
+    // ✅ 응답노트 모달
+    async function showPrayerNote(member, groupId) {
+      const modal = document.getElementById("responseModal");
+      const list = document.getElementById("prayerList");
+      modal.style.display = "flex";
+      list.innerHTML = `<p>불러오는 중...</p>`;
+
+      try {
+        const res = await fetch(`${scriptURL}?mode=getPrayersAll&groupId=${groupId}`);
+        const prayers = await res.json();
+        const items = prayers.filter(p => p.멤버이름 === member);
+        if (items.length === 0) {
+          list.innerHTML = `<p>기도제목이 없습니다.</p>`;
+          return;
+        }
+
+        list.innerHTML = "";
+        items.forEach(item => {
+          const lines = (item.기도제목 || "")
+            .split("\n")
+            .map(l => l.trim())
+            .filter(l => l !== "");
+
+          lines.forEach((line, i) => {
+            const div = document.createElement("div");
+            div.className = "prayer-item";
+            const textWithNumber = /^\d+\./.test(line)
+              ? line
+              : `${i + 1}. ${line}`;
+            div.innerHTML = `
+              <div class="prayer-text">🕊️ ${textWithNumber}</div>
+              <div class="prayer-buttons">
+                <button class="btn-yes" onclick="setResponse(this, '${member}', '${line}', '응답됨')">응답됨</button>
+                <button class="btn-diff" onclick="setResponse(this, '${member}', '${line}', '다른 방향')">다른 방향</button>
+                <button class="btn-wait" onclick="setResponse(this, '${member}', '${line}', '대기중')">대기중</button>
+                <button class="btn-no" onclick="setResponse(this, '${member}', '${line}', '거절')">거절</button>
+              </div>
+            `;
+            list.appendChild(div);
+          });
+        });
+      } catch (err) {
+        list.innerHTML = `<p>❌ 오류: ${err.message}</p>`;
+      }
+    }
+
+    function closeResponseModal() {
+      document.getElementById("responseModal").style.display = "none";
+    }
+
+    async function setResponse(btn, member, prayer, status) {
+      const parent = btn.closest(".prayer-item");
+      parent.querySelector(".prayer-buttons").style.display = "none";
+      const result = document.createElement("div");
+      result.className = "result";
+      result.innerHTML = `✅ ${status} <button class="btn-edit" onclick="editResponse(this)">수정</button>`;
+      parent.appendChild(result);
+
+      const payload = { mode: "saveNote", groupId, member, prayer, status, privacy: "공개" };
+      try {
+        const res = await fetch(scriptURL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        console.log("저장결과:", await res.json());
+      } catch (err) {
+        console.error("저장오류:", err);
+      }
+    }
+
+    function editResponse(btn) {
+      const parent = btn.closest(".prayer-item");
+      parent.querySelector(".result").remove();
+      parent.querySelector(".prayer-buttons").style.display = "flex";
+    }
+
+    // ✅ 페이지 로드 시 실행
+    window.addEventListener("load", loadGroupMembers);
+	
+	/* -------------------------------------------------------------------------- */
+/* 🟦 멤버 추가 UI 동작 */
+/* -------------------------------------------------------------------------- */
+
+document.getElementById("openAddMemberBtn").onclick = () => {
+  console.log("🟦 [UI] 멤버 추가 폼 열기");
+  document.getElementById("addMemberForm").style.display = "block";
+  document.getElementById("openAddMemberBtn").style.display = "none";
+};
+
+document.getElementById("saveNewMemberBtn").onclick = async () => {
+  const name = document.getElementById("newMemberName").value.trim();
+  const btn = document.getElementById("saveNewMemberBtn");
+
+  if (!name) {
+    alert("이름을 입력하세요!");
+    return;
+  }
+
+  /* ---------------------------
+     🔥 추가중... 애니메이션 시작
+  ----------------------------*/
+  btn.disabled = true;
+  const originalText = btn.textContent;
+  btn.textContent = "추가중...";
+
+  const loader = document.createElement("span");
+  loader.className = "member-add-loading";
+  btn.appendChild(loader);
+
+  console.log("📤 [ADD MEMBER] 요청 시작 →", {
+    groupId,
+    newMember: name
+  });
+
+  const payload = {
+    mode: "addMember",
+    groupId: groupId,
+    newMember: name
+  };
+
+  try {
+    const res = await fetch(scriptURL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    const json = await res.json();
+
+    console.log("📥 [ADD MEMBER] 서버 응답:", json);
+
+    if (json.success) {
+      alert(`🎉 ${name} 님이 추가되었습니다!`);
+
+      // 🔄 즉시 반영
+      await refreshMembersAfterAdd();
+
+      // 입력박스 초기화
+      document.getElementById("newMemberName").value = "";
+    } else {
+      alert("추가 실패: " + json.message);
+    }
+
+  } catch (err) {
+    console.error("❌ [ADD MEMBER] 에러:", err);
+    alert("서버 통신 중 오류 발생");
+  } finally {
+    /* ---------------------------
+       🔥 애니메이션 종료
+    ----------------------------*/
+    btn.disabled = false;
+    btn.textContent = originalText;
+    loader.remove();
+  }
+};
+
+ 
+/* -------------------------------------------
+   🟦 이름 수정 모달 동작
+------------------------------------------- */
+
+let renameTarget = null;
+let renameBox = null;   // ⭐ 추가
+
+
+function openRenameModal(member) {
+  renameTarget = member;
+  document.getElementById("renameInput").value = member;
+
+  const modal = document.getElementById("renameModal");
+  modal.style.display = "flex";
+}
+
+function closeRenameModal() {
+  renameTarget = null;
+  document.getElementById("renameModal").style.display = "none";
+}
+
+async function saveRename() {
+  if (!renameTarget) return;
+
+
+  // ⭐ 버튼 → "수정중…" 로 변경
+  const btn = document.getElementById("renameSaveBtn");
+  btn.textContent = "수정중…";
+  btn.disabled = true;
+
+  // 로더 효과
+  btn.classList.add("loading");
+  
+  const newName = document.getElementById("renameInput").value.trim();
+  if (!newName) {
+    alert("이름을 입력하세요!");
+    return;
+  }
+
+  const payload = {
+    mode: "renameMember",
+    groupId,
+    oldName: renameTarget,
+    newName
+  };
+
+  try {
+    const res = await fetch(scriptURL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+
+    const json = await res.json();
+
+    if (json.success) {
+      alert("이름이 변경되었습니다!");
+
+      // 🔄 변경 즉시 화면 리프레시
+      await refreshMembersAfterAdd();
+    } else {
+      alert("수정 실패: " + json.message);
+    }
+
+  } catch (err) {
+    console.error("❌ renameMember 오류:", err);
+    alert("서버 오류가 발생했습니다.");
+  }
+
+  closeRenameModal();
+}
+
+/* ---------------------------------------------------------------------
+   ✨ 빛입자(먼지) + 십자가 반짝임 효과 Canvas
+--------------------------------------------------------------------- */
+const canvas = document.getElementById("particleCanvas");
+const ctx = canvas.getContext("2d");
+
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+const particles = [];
+const crosses = [];
+const PARTICLE_COUNT = 30;   // 먼지 개수
+const CROSS_COUNT = 6;       // 십자가 개수
+
+/* Resize 대응 */
+window.addEventListener("resize", () => {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+});
+
+/* ✨ 일반 먼지입자 만들기 */
+class Dust {
+  constructor() {
+    this.reset();
+  }
+  reset() {
+    this.x = Math.random() * canvas.width;
+    this.y = Math.random() * canvas.height;
+    this.size = Math.random() * 2 + 0.5;
+    this.speedY = Math.random() * 0.4 + 0.1;
+    this.alpha = Math.random() * 0.7 + 0.2;
+    this.alphaChange = (Math.random() * 0.015 + 0.003) * (Math.random() > 0.5 ? -1 : 1);
+  }
+  update() {
+    this.y += this.speedY;
+    this.alpha += this.alphaChange;
+    if (this.alpha <= 0.1 || this.alpha >= 0.8) this.alphaChange *= -1;
+    if (this.y > canvas.height) this.reset();
+  }
+  draw() {
+    ctx.beginPath();
+    ctx.fillStyle = `rgba(255,255,255,${this.alpha})`;
+    ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+    ctx.fill();
+  }
+}
+
+/* ✝ 밝기 깜빡이는 십자가 */
+class Cross {
+  constructor() {
+    this.reset();
+  }
+  reset() {
+    this.x = Math.random() * canvas.width;
+    this.y = Math.random() * canvas.height;
+    this.size = Math.random() * 8 + 4;
+    this.alpha = Math.random() * 0.4 + 0.2;
+    this.alphaChange = (Math.random() * 0.015 + 0.004) * (Math.random() > 0.5 ? -1 : 1);
+  }
+  update() {
+    this.alpha += this.alphaChange;
+    if (this.alpha <= 0.1 || this.alpha >= 0.9) this.alphaChange *= -1;
+  }
+  draw() {
+    ctx.save();
+    ctx.translate(this.x, this.y);
+    ctx.globalAlpha = this.alpha;
+    ctx.strokeStyle = "white";
+    ctx.lineWidth = 1.3;
+
+    // 가로선
+    ctx.beginPath();
+    ctx.moveTo(-this.size, 0);
+    ctx.lineTo(this.size, 0);
+    ctx.stroke();
+
+    // 세로선
+    ctx.beginPath();
+    ctx.moveTo(0, -this.size);
+    ctx.lineTo(0, this.size);
+    ctx.stroke();
+
+    ctx.restore();
+  }
+}
+
+/* 초기 생성 */
+for (let i = 0; i < PARTICLE_COUNT; i++) particles.push(new Dust());
+for (let i = 0; i < CROSS_COUNT; i++) crosses.push(new Cross());
+
+/* ✨ 애니메이션 루프 */
+function animate() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  particles.forEach(p => { p.update(); p.draw(); });
+  crosses.forEach(c => { c.update(); c.draw(); });
+
+  requestAnimationFrame(animate);
+}
+
+animate();
+
+async function addVisitLog_Record() {
+  try {
+    const url = new URL(location.href);
+    const groupId = url.searchParams.get("gid") || "";
+    const from = url.searchParams.get("from") || "direct";
+
+    const device = navigator.userAgent.includes("Mobile") ? "mobile" : "pc";
+    const browser = navigator.userAgent;
+
+    const adminId = localStorage.getItem("loginId") || "";
+
+    await fetch(CONFIG.GAS_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        mode: "addLog",
+        page: "record",
+        adminId,
+        groupId,
+        member: "",
+        from,
+        device,
+        browser
+      })
+    });
+  } catch (e) {
+    console.warn("❌ record 로그 실패:", e);
+  }
+}
+
+window.addEventListener("beforeunload", () => {
+  const stay = Math.floor((Date.now() - enterTime) / 1000);
+
+  fetch(CONFIG.GAS_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      mode: "logStay",
+      page: "record",
+      groupId: new URLSearchParams(window.location.search).get("gid"),
+      time: new Date().toISOString(),
+      stay: stay
+    })
+  });
+});
+async function signup() {
+  const id = signupId.value.trim();
+    const pwd = signupPwd.value.trim();
+	  const pwd2 = signupPwd2.value.trim();
+	    const email = signupEmail.value.trim();
+		  const msg = signupMsg;
+		  
+		    msg.textContent = "";
+			
+			  if (id.length < 4 || pwd.length < 4) {
+			      msg.textContent = "⚠️ 아이디/비밀번호는 4자리 이상입니다.";
+				      return;
+					    }
+						
+						  if (pwd !== pwd2) {
+						      msg.textContent = "⚠️ 비밀번호가 서로 일치하지 않습니다.";
+							      return;
+								    }
+									
+									  if (!email) {
+									      msg.textContent = "⚠️ 이메일을 입력해주세요.";
+										      return;
+											    }
+												
+												  try {
+												      const res = await fetch(`${scriptURL}?mode=signup&id=${id}&pwd=${pwd}&email=${email}`);
+													      const data = await res.json();
+														  
+														      if (data.success) {
+															        msg.style.color = "#9fff9f";
+																	      msg.textContent = "🎉 회원가입 완료! 로그인해주세요.";
+																		      } else {
+																			        msg.style.color = "#ffcccb";
+																					      msg.textContent = "❌ " + data.message;
+																						      }
+																							  
+																							    } catch (err) {
+																								    msg.style.color = "#ffcccb";
+																									    msg.textContent = "서버 오류 발생";
+																										  }
+																										  }
+																										  
+// 페이지 로드 직후 실행
+document.addEventListener("DOMContentLoaded", addVisitLog_Record);
+
+/* ----------------------------- */
+/* 🔔 알림 설정 토글 버튼       */
+/* ----------------------------- */
+
+document.getElementById("notifyBtn").addEventListener("click", toggleSub);
+
+async function toggleSub() {
+  const isSub = localStorage.getItem("push_sub_" + groupId) === "1";
+
+  if (!isSub) {
+    await subscribeToPush(groupId);
+    showToast("🔔 알림 설정됨");
+    localStorage.setItem("push_sub_" + groupId, "1");
+    document.getElementById("notifyBtn").innerText = "🔕 알림 해제";
+  } else {
+    await unsubscribePush(groupId);
+    showToast("알림 해제되었습니다");
+    localStorage.removeItem("push_sub_" + groupId);
+    document.getElementById("notifyBtn").innerText = "🔔 알림 설정";
+  }
+}
+
+</script>
+
+ <!-- ✅ 응답 노트 모달 -->
+  <div id="responseModal" class="modal" style="display:none;">
+    <div class="modal-content">
+      <h3 id="responseTitle">🙏 응답 기록</h3>
+      <div id="prayerList"></div>
+      <div style="text-align:center; margin-top:15px;">
+        <button onclick="closeResponseModal()" class="btn-close">닫기</button>
+      </div>
+    </div>
+  </div>
+  
+  
+</body>
+</html>

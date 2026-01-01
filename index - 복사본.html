@@ -1,0 +1,1320 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>🙏 기도그룹 로그인 및 관리</title>
+  <link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#101022">
+<link rel="apple-touch-icon" href="images/apple-touch-icon.png">
+  <script src="/app-config.js"></script>
+
+  <style>
+    body {
+      font-family: "Noto Sans KR", sans-serif;
+      background: radial-gradient(circle at top, #1c1f3a, #0d0e16);
+      color: #fff;
+      text-align: center;
+      margin: 0;
+      padding: 20px;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+    h2 {
+      margin-bottom: 10px;
+      color: #ffdf6b;
+    }
+    .container {
+      max-width: 400px;
+      margin: 0 auto;
+      background: rgba(255,255,255,0.07);
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 4px 20px rgba(255,255,255,0.15);
+      transition: all 0.5s ease;
+      transform-origin: top center;
+    }
+
+    /* ✅ 접히는 애니메이션 효과 */
+    .fold-out {
+      animation: foldOut 1.0s ease forwards;
+    }
+    @keyframes foldOut {
+      0% { opacity: 1; transform: scaleY(1); }
+      80% { opacity: 0.3; transform: scaleY(0.2); }
+      100% { opacity: 0; transform: scaleY(0); height: 0; }
+    }
+
+    input {
+      width: 80%;
+      padding: 10px;
+      margin: 8px 0;
+      border: none;
+      border-radius: 6px;
+      background: rgba(255,255,255,0.15);
+      color: #fff;
+  font-size: clamp(18px, 2.8vw, 21px); /* ✅ 반응형 글자 크기 */
+    }
+    input::placeholder { color: #ccc; }
+    button {
+      background: #4f9cff;
+      border: none;
+      color: #fff;
+      padding: 10px 20px;
+      border-radius: 6px;
+      cursor: pointer;
+      margin-top: 10px;
+      transition: background 0.3s;
+    }
+    button:hover { background: #367de3; }
+
+    .divider {
+      margin: 25px 0;
+      border-top: 1px solid rgba(255,255,255,0.2);
+    }
+    .message { font-size: 14px; color: #ffcccb; margin-top: 6px; }
+
+    /* ✅ 그룹 목록 */
+    #groupSection {
+      display: none;
+      opacity: 0;
+      transform: translateY(20px);
+      transition: all 0.6s ease;
+      margin-top: 20px;
+      text-align: center;
+    }
+    #groupSection.active {
+      display: block;
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .group-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 14px;
+      justify-content: center;
+      margin-bottom: 24px;
+    }
+    .group-btn {
+      background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.15);
+      border-radius: 12px;
+      padding: 16px 8px;
+      color: #fff;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.25s ease;
+  font-size: clamp(17px, 2.5vw, 20px); /* ✅ 반응형 글자 크기 */
+    }
+    .group-btn:hover {
+      background: rgba(255,255,255,0.25);
+      transform: translateY(-2px);
+    }
+    .add-btn {
+      background: #007bff;
+      border-radius: 8px;
+      padding: 12px 18px;
+      color: white;
+      cursor: pointer;
+      border: none;
+      font-weight: 600;
+      transition: background 0.25s;
+  font-size: clamp(18px, 2.8vw, 21px); /* ✅ 반응형 글자 크기 */
+    }
+    .add-btn:hover { background: #339dff; }
+
+    #logoutBtn:hover { background: #ff5252; }
+	
+	/* ✅ 상단 인사바 - 플로팅 제거 & 수평 정렬 */
+#welcomeBar {
+  display: flex;
+  justify-content: flex-end; /* 오른쪽 정렬 */
+  align-items: center;
+  gap: 10px;
+  position: relative; /* 플로팅 제거 */
+  margin-bottom: 10px;
+  width: 100%;
+}
+
+#welcomeMsg {
+  color: #ffdf6b;
+  font-size: 16px;
+  font-weight: 500;
+  display: none; /* 기본은 숨김 */
+}
+
+/* ✅ 로그아웃 버튼 */
+#logoutBtn {
+  background: #ff6b6b;
+  border: none;
+  color: #fff;
+  padding: 8px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: none;
+  font-size: 12px;
+  position: static; /* ✅ 플로팅 제거 */
+}
+
+#logoutBtn:hover {
+  background: #ff5252;
+}
+
+	/* ✅ 토스트 메시지 스타일 */
+#toast {
+  visibility: hidden;
+  min-width: 240px;
+  background: rgba(0, 0, 0, 0.85);
+  color: #fff;
+  text-align: center;
+  border-radius: 10px;
+  padding: 16px 24px;
+  position: fixed;
+  left: 50%;
+  top: 50%; /* ✅ 가운데 정렬 */
+  transform: translate(-50%, -50%); /* ✅ 가로세로 모두 중앙 */
+  font-size: 17px;
+  z-index: 2000;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  pointer-events: none;
+}
+
+#toast.show {
+  visibility: visible;
+  opacity: 1;
+}
+
+/* ✅ 자동 로그인 로딩 오버레이 */
+#loadingOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.75);
+  color: #ffdf6b;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 9998;
+  font-size: 18px;
+}
+#loadingOverlay .loader {
+  border: 3px solid rgba(255,255,255,0.2);
+  border-top: 3px solid #ffdf6b;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  animation: spin 1s linear infinite;
+  margin-bottom: 12px;
+}
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+.share-btn {
+  background: #8b5cf6;
+  border: none;
+  border-radius: 8px;
+  color: white;
+  padding: 12px 18px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background 0.25s;
+  font-size: clamp(17px, 2.8vw, 20px);
+}
+.share-btn:hover {
+  background: #a78bfa;
+}
+
+/* ✅ 새 그룹 추가 / 공유 그룹 추가 간격 정렬 */
+#groupSection {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px; /* 🔹 위 그룹 버튼(.group-grid)과 동일 간격 */
+}
+
+#groupSection .add-btn,
+#groupSection .share-btn {
+  margin: 0; /* 기존 여백 제거 */
+}
+/* ✅ 내 그룹 관리 제목 + 로그아웃 버튼 균등 배치 */
+.title-bar {
+  display: flex;
+  justify-content: space-between; /* 좌우 균등 */
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.title-bar h2 {
+  color: #ffdf6b;
+  margin: 0;
+  font-size: 22px;
+}
+
+.title-bar #logoutBtn {
+  background: transparent;              /* 🔸배경 제거 */
+  color: #d18fff;                       /* 살짝 부드러운 붉은색 텍스트 */
+  /* border: 1px solid #ff7b7b80;           흐린 붉은 테두리 */
+  padding: 6px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.25s ease;
+}
+
+.title-bar #logoutBtn:hover {
+  background: rgba(255, 107, 107, 0.1); /* 🔸hover 시 은은한 붉은 음영 */
+  color: #ffdf6b;                       /* 노란색으로 바뀌며 강조 */
+  border-color: #ffdf6b80;
+}
+
+.title-bar #logoutBtn:hover {
+  background: #ff5252;
+}
+
+/* ✅ 새 그룹 추가 / 공유 그룹 추가 버튼 간격 통일 */
+#groupSection {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px; /* 그룹 버튼(gap: 14px)과 동일하게 */
+}
+.bottom-buttons {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); /* 그룹 버튼과 동일한 너비 */
+  gap: 14px;
+  width: 100%;
+  margin-top: 10px;
+}
+
+.bottom-buttons .add-btn,
+.bottom-buttons .share-btn {
+  width: 100%;               /* 가로폭을 그리드에 맞춰 늘림 */
+  height: 50px;              /* 그룹 버튼 높이와 일치 */
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: clamp(17px, 2.5vw, 20px);
+}
+
+/* ✅ '전체 기도문 보기' 버튼 스타일 */
+.view-all-wrapper {
+  display: flex;
+  justify-content: center;
+  margin-top: 18px;
+}
+
+.view-all-btn {
+  background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+  color: white;
+  width: 100%;
+  border: none;
+  border-radius: 10px;
+  padding: 10px 20px;
+  font-size: 18px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.15);
+  transition: transform 0.15s, opacity 0.2s;
+}
+
+.view-all-btn:hover {
+  transform: translateY(-2px);
+  opacity: 0.9;
+}
+/* ✅ 그룹 불러오는 중 로더 */
+.mini-loader {
+  border: 3px solid rgba(255,255,255,0.2);
+  border-top: 3px solid #ffdf6b;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  animation: spin 1s linear infinite;
+}
+/* ✅ 자동 로그인 로딩 오버레이 */
+#loadingOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.75);
+  color: #ffdf6b;
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 9998;
+  font-size: 18px;
+}
+#loadingOverlay .loader {
+  border: 3px solid rgba(255,255,255,0.2);
+  border-top: 3px solid #ffdf6b;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  animation: spin 1s linear infinite;
+  margin-bottom: 12px;
+}
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* ▣ 새 그룹 추가 폼 기본 스타일 */
+.add-group-form {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background: rgba(10, 12, 30, 0.95);
+  padding: 20px;
+  border-top-left-radius: 16px;
+  border-top-right-radius: 16px;
+  transform: translateY(100%);
+  transition: transform 0.45s ease;
+  z-index: 9999;
+}
+
+.add-group-form.show {
+  transform: translateY(0%);
+}
+
+.form-box h2 {
+  color: #ffd86b;
+  text-align: center;
+  margin-bottom: 10px;
+}
+
+.form-box label {
+  color: #fff;
+  font-size: 14px;
+  display: block;
+  margin-top: 12px;
+  margin-bottom: 5px;
+}
+
+#newGroupName,
+.member-input {
+  width: 100%;
+  padding: 10px;
+  border-radius: 10px;
+  background: #1c2035;
+  border: 1px solid #444a67;
+  color: #fff;
+  font-size: 15px;
+}
+
+.member-add-btn {
+  margin-top: 12px;
+  width: 100%;
+  padding: 12px;
+  border-radius: 10px;
+  background: #30395a;
+  color: #fff;
+  border: none;
+}
+
+.btn-row {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 15px;
+}
+
+.cancel-btn {
+  width: 48%;
+  padding: 12px;
+  background: #666;
+  color: #fff;
+  border-radius: 10px;
+  border: none;
+}
+
+.save-btn {
+  width: 48%;
+  padding: 12px;
+  background: #4c8fff;
+  color: #fff;
+  border-radius: 10px;
+  border: none;
+}
+
+.save-btn.disabled {
+  opacity: 0.4;
+}
+
+.save-loading {
+  text-align: center;
+  margin-top: 10px;
+  color: #ffd86b;
+  font-size: 16px;
+}
+
+.loader {
+  width: 22px;
+  height: 22px;
+  border: 3px solid rgba(255,255,255,0.25);
+  border-top-color: #ffd86b;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  margin: 8px auto 0;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.hidden { display:none; }
+
+  </style>
+</head>
+<body>
+
+  <div class="container" id="authContainer">
+    <h2>🙏 기도그룹 로그인</h2>
+    <div id="loginSection">
+      <input type="text" id="loginId" placeholder="아이디" minlength="4" required />
+      <input type="password" id="loginPwd" placeholder="비밀번호" minlength="4" required />
+      <button onclick="login()">로그인</button>
+      <p class="message" id="loginMsg"></p>
+    </div>
+
+    <div class="divider"></div>
+
+    <h2>🕊 회원가입</h2>
+    <div id="signupSection">
+      <input type="text" id="signupId" placeholder="새 아이디" minlength="4" required />
+      <input type="password" id="signupPwd" placeholder="비밀번호" minlength="4" required />
+      <input type="password" id="signupPwd2" placeholder="비밀번호 확인" minlength="4" required />
+	  <input type="email" id="signupEmail" placeholder="이메일주소 (필수)" required />
+      <button onclick="signup()">회원가입</button>
+      <p class="message" id="signupMsg"></p>
+    </div>
+	
+	<div id="signupLoading" 
+     style="display:none; margin-top:10px; color:#ffd86b; font-size:16px;">
+  회원가입 중…
+  <div class="loader" style="
+    border: 3px solid rgba(255,255,255,0.2);
+    border-top: 3px solid #ffdf6b;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    animation: spin 1s linear infinite;
+    margin: 10px auto 0;">
+  </div>
+</div>
+
+  </div>
+
+  <!-- ✅ 그룹 목록 -->
+  <div id="groupSection">
+    <div class="title-bar">
+  <h2>📋 내 그룹 관리</h2>
+  <button id="logoutBtn" onclick="logout()">로그아웃</button>
+</div>
+
+    <div id="groupGrid" class="group-grid"></div>
+    <div class="bottom-buttons">
+  <button class="add-btn" onclick="showAddGroupForm()">➕ 새 그룹 추가</button>
+  <button class="add-btn" onclick="showSharedGroupForm()">🔗 공유 그룹 추가</button>
+</div>
+</div>
+
+<!-- ✅ 새 버튼 추가 -->
+<div class="view-all-wrapper" id="viewAllWrapper" style="display:none;">
+  <button class="view-all-btn" onclick="location.href='view-all.html'">
+    📖 내 그룹의 전체 기도문 보기
+  </button>
+</div>
+  
+  <!-- ✅ 자동 로그인 로딩 오버레이 -->
+<div id="loadingOverlay">
+  <div class="loader"></div>
+  <p>🔄 자동 로그인 중입니다...</p>
+</div>
+
+<!-- 📌 길게 누르기 메뉴 -->
+<div id="longPressMenu" 
+     style="display:none; position:fixed; left:50%; top:50%; transform:translate(-50%,-50%);
+            background:#1e1e2f; padding:18px; border-radius:14px; 
+            box-shadow:0 4px 20px rgba(0,0,0,0.4); z-index:3000; width:240px; text-align:center;">
+  <h3 id="popupGroupName" style="margin:0 0 12px; color:#ffdf6b;"></h3>
+
+  <button id="renameBtn" 
+          style="width:100%; padding:10px; margin-bottom:8px; background:#4f9cff;
+                 border:none; border-radius:8px; color:white; cursor:pointer;">✏ 이름 수정</button>
+  <button id="deleteBtn"
+          style="width:100%; padding:10px; margin-bottom:8px; background:#ff6b6b;
+                 border:none; border-radius:8px; color:white; cursor:pointer;">🗑 삭제</button>
+  <button onclick="closeMenu()"
+          style="width:100%; padding:10px; background:#555;
+                 border:none; border-radius:8px; color:white; cursor:pointer;">❌ 취소</button>
+</div>
+
+<!-- 📌 이름 수정 입력창 -->
+<div id="renameBox"
+     style="display:none; position:fixed; left:50%; top:50%; transform:translate(-50%,-50%);
+            background:#1e1e2f; padding:18px; border-radius:14px; z-index:3001;
+            width:260px; text-align:center;">
+  <h3 style="margin:0 0 10px; color:#ffdf6b;">이름 수정</h3>
+  <input id="renameInput" 
+         style="width:90%; padding:8px; border:none; border-radius:8px; 
+                background:rgba(255,255,255,0.15); color:white;">
+  <button id="renameConfirmBtn"
+          style="width:100%; padding:10px; margin-top:10px; background:#3b82f6;
+                 border:none; color:white; border-radius:8px; cursor:pointer;">수정하기</button>
+</div>
+
+<!-- 📌 로딩 애니메이션 -->
+<div id="actionLoading"
+     style="display:none; position:fixed; left:50%; top:50%; transform:translate(-50%,-50%);
+            background:rgba(0,0,0,0.75); padding:20px; border-radius:12px; 
+            color:#ffdf6b; font-size:18px; text-align:center;">
+  <div class="loader" style="
+    border:3px solid rgba(255,255,255,0.2);
+    border-top:3px solid #ffdf6b;
+    border-radius:50%;
+    width:30px;height:30px;
+    margin:auto;margin-bottom:10px;
+    animation:spin 1s linear infinite;"></div>
+  <div id="loadingText">처리 중…</div>
+</div>
+
+<!-- ▣ 새 그룹 추가 폼 (처음에는 숨김) -->
+<div id="addGroupForm" class="add-group-form hidden">
+  <div class="form-box">
+    <h2>새 그룹 추가</h2>
+
+    <label>그룹명</label>
+    <input type="text" id="newGroupName" placeholder="그룹명을 입력하세요">
+
+    <label>구성원</label>
+    <div id="memberList"></div>
+
+    <button class="member-add-btn" onclick="addMemberField()">+ 구성원 추가</button>
+
+    <div class="btn-row">
+      <button class="cancel-btn" onclick="hideAddGroupForm()">취소</button>
+      <button id="saveGroupBtn" class="save-btn disabled" onclick="saveNewGroup()" disabled>저장</button>
+    </div>
+
+    <div id="saveLoading" class="save-loading hidden">
+      저장중…
+      <div class="loader"></div>
+    </div>
+  </div>
+</div>
+
+<!-- 📌 공유 그룹 추가 폼 -->
+<div id="sharedGroupForm" class="add-group-form hidden">
+  <div class="form-box">
+    <h2>🔗 공유 그룹 추가</h2>
+
+    <label>공유 링크</label>
+    <input type="text" id="sharedGroupLink" placeholder="그룹 링크를 붙여넣기 해주세요">
+
+    <div class="btn-row">
+      <button class="cancel-btn" onclick="hideSharedGroupForm()">취소</button>
+      <button id="saveSharedBtn" class="save-btn disabled" onclick="saveSharedGroup()" disabled>저장</button>
+    </div>
+
+    <div id="sharedSaveLoading" class="save-loading hidden">
+      저장중…
+      <div class="loader"></div>
+    </div>
+  </div>
+</div>
+
+<style>
+@keyframes spin {
+  0% { transform:rotate(0deg); }
+  100% { transform:rotate(360deg); }
+}
+</style>
+
+  <script>
+  
+const scriptURL = CONFIG.GAS_URL;
+
+/* ========================================================================= */
+/* 📌 필수: 버튼 DOM 먼저 가져오기 */
+/* ========================================================================= */
+const renameBtn = document.getElementById("renameBtn");
+const deleteBtn = document.getElementById("deleteBtn");
+const renameConfirmBtn = document.getElementById("renameConfirmBtn");
+const renameInput = document.getElementById("renameInput");
+
+/* ========================================================================= */
+/* 📌 LOAD 이벤트 (1개만) */
+/* ========================================================================= */
+window.addEventListener("load", async () => {
+// ★ 자동 로그인 여부 체크
+const savedId = localStorage.getItem("loginId");
+const savedPwd = localStorage.getItem("loginPwd");
+
+if (!savedId || !savedPwd) {
+  showToast("로그인이 필요합니다.");
+}
+
+  const urlParams = new URLSearchParams(window.location.search);
+  const fromRecord = urlParams.get("fromRecord");
+
+  /* ------------------ 자동 로그인 처리 ------------------ */
+  if (fromRecord === "1" && savedId) {
+    showGroups(savedId);
+    const viewAllWrapper = document.getElementById("viewAllWrapper");
+    if (viewAllWrapper) viewAllWrapper.style.display = "flex";
+  } else {
+    if (savedId && savedPwd) {
+      const overlay = document.getElementById("loadingOverlay");
+      if (overlay) overlay.style.display = "flex";
+
+      setTimeout(async () => {
+        await autoLogin(savedId, savedPwd);
+        if (overlay) overlay.style.display = "none";
+      }, 300);
+    }
+  }
+
+
+  /* ========================================================================= */
+  /* 📌 길게누르기 메뉴 버튼 기능 연결 */
+  /* ========================================================================= */
+  if (renameBtn) {
+    renameBtn.onclick = () => {
+      closeMenu();
+      renameInput.value = selectedGroupName;
+      renameBox.style.display = "block";
+    };
+  }
+
+  if (renameConfirmBtn) {
+    renameConfirmBtn.onclick = async () => {
+      const newName = renameInput.value.trim();
+      if (!newName) return showToast("⚠️ 새 이름을 입력하세요.");
+
+      showLoading("이름 수정 중…");
+
+      try {
+        await fetch(scriptURL, {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    mode: "renameGroup",
+    groupId: selectedGroupId,
+    newName
+  })
+});
+
+        closeRenameBox();
+        showToast("✏ 이름 수정 완료!");
+        await loadGroups(localStorage.getItem("adminId"));
+      } finally {
+        hideLoading();
+      }
+    };
+  }
+
+  if (deleteBtn) {
+    deleteBtn.onclick = async () => {
+      closeMenu();
+
+      if (!confirm(`'${selectedGroupName}' 그룹을 정말로 삭제하시겠습니까?\n삭제후 다시 복구할 수 없습니다.`)) return;
+
+      showLoading("삭제 중…");
+
+      try {
+        await fetch(scriptURL, {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    mode: "deleteGroup",
+    groupId: selectedGroupId
+  })
+});
+
+        showToast("🗑 삭제되었습니다!");
+        await loadGroups(localStorage.getItem("adminId"));
+      } finally {
+        hideLoading();
+      }
+    };
+  }
+
+}); /* ← load 이벤트 끝 */
+
+
+/* ========================================================================= */
+/* 📌 토스트 */
+function showToast(message, duration = 2500) {
+  const toast = document.getElementById("toast");
+  toast.textContent = message;
+  toast.className = "show";
+  setTimeout(() => {
+    toast.className = toast.className.replace("show", "");
+  }, duration);
+}
+
+/* ========================================================================= */
+/* 📌 자동 로그인 */
+async function autoLogin(id, pwd) {
+  try {
+    const res = await fetch(`${scriptURL}?mode=login&id=${id}&pwd=${pwd}`);
+    const data = await res.json();
+
+    if (data.success) {
+      showToast("✅ 자동 로그인되었습니다.");
+      const viewAllWrapper = document.getElementById("viewAllWrapper");
+      if (viewAllWrapper) viewAllWrapper.style.display = "flex";
+      showGroups(id);
+    } else {
+      const msg = document.getElementById("loginMsg");
+      msg.style.color = "#ffcccb";
+      msg.textContent = "❌ 자동 로그인 실패. 다시 로그인해주세요.";
+    }
+  } catch (err) {
+    console.log("자동 로그인 실패:", err);
+  }
+}
+
+/* ========================================================================= */
+/* 📌 로그인 */
+async function login() {
+  const id = loginId.value.trim();
+  const pwd = loginPwd.value.trim();
+  const msg = loginMsg;
+  msg.textContent = "";
+
+  if (id.length < 4 || pwd.length < 4) {
+    msg.textContent = "⚠️ 아이디와 비밀번호는 4자리 이상이어야 합니다.";
+    return;
+  }
+
+  const overlay = document.getElementById("loadingOverlay");
+  overlay.style.display = "flex";
+
+  try {
+    const res = await fetch(`${scriptURL}?mode=login&id=${id}&pwd=${pwd}`);
+    const data = await res.json();
+
+    if (data.success) {
+      msg.style.color = "#9fff9f";
+      msg.textContent = "✅ 로그인되었습니다.";
+
+      localStorage.setItem("loginId", id);
+      localStorage.setItem("loginPwd", pwd);
+      localStorage.setItem("adminId", id);
+
+      const gRes = await fetch(`${scriptURL}?mode=getGroups&adminId=${id}`);
+      const gData = await gRes.json();
+
+      if (gData.groups) {
+        const ids = gData.groups.map(g => g.그룹ID);
+        localStorage.setItem("groupIds", JSON.stringify(ids));
+      }
+
+      const viewAllWrapper = document.getElementById("viewAllWrapper");
+      if (viewAllWrapper) viewAllWrapper.style.display = "flex";
+
+      authContainer.classList.add("fold-out");
+
+      setTimeout(() => showGroups(id), 650);
+    } else {
+      msg.style.color = "#ffcccb";
+      msg.textContent = "❌ 아이디 또는 비밀번호가 일치하지 않습니다.";
+    }
+  } catch {
+    msg.textContent = "서버 연결 오류";
+  } finally {
+    overlay.style.display = "none";
+  }
+}
+
+/* ========================================================================= */
+/* 📌 그룹 목록 표시 */
+async function showGroups(adminId) {
+  authContainer.style.display = "none";
+  groupSection.style.display = "block";
+
+  showToast(`🙏 ${adminId}님 반갑습니다!`);
+
+  setTimeout(() => logoutBtn.style.display = "block", 500);
+  setTimeout(() => groupSection.classList.add("active"), 50);
+
+  await loadGroups(adminId);
+}
+
+/* ========================================================================= */
+/* 📌 그룹 목록 로딩 */
+async function loadGroups(adminId) {
+  const grid = groupGrid;
+
+  grid.innerHTML = `
+    <div style="display:flex;flex-direction:column;align-items:center;gap:10px;color:#ffdf6b;">
+      <div class="mini-loader"></div>
+      <p style="margin:0;">그룹 불러오는 중...</p>
+    </div>`;
+
+  try {
+    const url = `${scriptURL}?mode=getGroups&adminId=${encodeURIComponent(adminId)}`;
+    const res = await fetch(url);
+    const data = await res.json();
+
+    grid.innerHTML = "";
+
+    if (!data.groups || data.groups.length === 0) {
+      grid.innerHTML = "<p>아직 등록된 그룹이 없습니다.</p>";
+      return;
+    }
+
+    data.groups.forEach(g => {
+      const btn = document.createElement("button");
+      btn.className = "group-btn";
+      btn.textContent = g.그룹명;
+
+      btn.onclick = () => openGroup(g.그룹ID);
+      attachLongPress(btn, g.그룹ID, g.그룹명);
+
+      grid.appendChild(btn);
+    });
+
+  } catch (err) {
+    grid.innerHTML = `<p style="color:#ff7b7b;">⚠️ 그룹 정보를 불러오지 못했습니다.</p>`;
+  }
+}
+
+/* ========================================================================= */
+/* 📌 그룹 열기 */
+function openGroup(groupId) {
+  location.href = `record.html?gid=${groupId}&from=index`;
+}
+
+/* ========================================================================= */
+/* 📌 길게누르기 */
+let pressTimer = null;
+let selectedGroupId = "";
+let selectedGroupName = "";
+let enterTime = Date.now();
+
+function attachLongPress(btn, groupId, groupName) {
+  btn.addEventListener("touchstart", startPress);
+  btn.addEventListener("mousedown", startPress);
+  btn.addEventListener("touchend", cancelPress);
+  btn.addEventListener("mouseup", cancelPress);
+  btn.addEventListener("mouseleave", cancelPress);
+
+  function startPress() {
+    selectedGroupId = groupId;
+    selectedGroupName = groupName;
+
+    pressTimer = setTimeout(() => {
+      document.getElementById("popupGroupName").innerText = selectedGroupName;
+      document.getElementById("longPressMenu").style.display = "block";
+    }, 600);
+  }
+
+  function cancelPress() {
+    clearTimeout(pressTimer);
+  }
+}
+
+function closeMenu() {
+  longPressMenu.style.display = "none";
+}
+function closeRenameBox() {
+  renameBox.style.display = "none";
+}
+
+/* ========================================================================= */
+/* 📌 로딩박스 */
+function showLoading(text) {
+  loadingText.textContent = text;
+  actionLoading.style.display = "block";
+}
+function hideLoading() {
+  actionLoading.style.display = "none";
+}
+/* ▣ 새 그룹 추가 UI 열기 */
+function showAddGroupForm() {
+  const form = document.getElementById("addGroupForm");
+  form.classList.remove("hidden");
+  setTimeout(() => form.classList.add("show"), 10);
+
+  // 초기화
+  document.getElementById("newGroupName").value = "";
+  document.getElementById("memberList").innerHTML = "";
+  addMemberField(); // 구성원1 자동 포함
+  checkGroupFormValid();
+}
+
+/* ▣ 숨기기 */
+function hideAddGroupForm() {
+  const form = document.getElementById("addGroupForm");
+  form.classList.remove("show");
+  setTimeout(() => form.classList.add("hidden"), 400);
+}
+
+/* ▣ 구성원 항목 추가 */
+function addMemberField() {
+  const container = document.getElementById("memberList");
+
+  const div = document.createElement("div");
+  div.innerHTML = `
+    <input class="member-input" placeholder="구성원 이름 입력">
+  `;
+  container.appendChild(div);
+
+  checkGroupFormValid();
+}
+
+/* ▣ 폼 입력 체크: 저장 버튼 활성화 여부 */
+function checkGroupFormValid() {
+  const name = document.getElementById("newGroupName").value.trim();
+  const members = [...document.querySelectorAll(".member-input")]
+                  .map(i => i.value.trim())
+                  .filter(v => v !== "");
+
+  const saveBtn = document.getElementById("saveGroupBtn");
+
+  if (name && members.length > 0) {
+    saveBtn.classList.remove("disabled");
+    saveBtn.disabled = false;
+  } else {
+    saveBtn.classList.add("disabled");
+    saveBtn.disabled = true;
+  }
+}
+
+/* ▣ 새 그룹 저장 */
+async function saveNewGroup() {
+  const groupName = document.getElementById("newGroupName").value.trim();
+  const members = [...document.querySelectorAll(".member-input")]
+                    .map(i => i.value.trim())
+                    .filter(v => v !== "");
+
+  const saveBtn = document.getElementById("saveGroupBtn");
+  const loading = document.getElementById("saveLoading");
+
+  // 버튼 비활성 + 로딩 표시
+  saveBtn.disabled = true;
+  saveBtn.innerText = "저장중…";
+  loading.classList.remove("hidden");
+
+  // ★★★★★ 여기에 console.log 추가 ★★★★★
+  const loginId = localStorage.getItem("adminId");
+  console.log("▶ 새 그룹 추가 adminId:", loginId);
+  
+  const body = {
+    mode: "addGroup",
+  adminId: localStorage.getItem("adminId"),  // ★ 관리자ID 추가
+    groupName,
+    members
+  };
+
+  try {
+    const res = await fetch(CONFIG.GAS_URL, {
+      method: "POST",
+      body: JSON.stringify(body),
+      headers: { "Content-Type": "application/json" }
+    });
+
+    const json = await res.json();
+    console.log(json);
+
+    saveBtn.innerText = "저장됨 ✓";
+    loading.classList.add("hidden");
+
+    // 1초 뒤 닫기 + 화면 새로고침
+    setTimeout(() => {
+  hideAddGroupForm();
+  location.href = "index.html?v=" + Date.now();
+}, 1000);
+
+
+  } catch (err) {
+    console.error(err);
+    saveBtn.innerText = "오류!";
+    loading.classList.add("hidden");
+  }
+}
+
+/* 입력 이벤트 리스너 */
+document.addEventListener("input", (e) => {
+  if (e.target.classList.contains("member-input") || e.target.id === "newGroupName") {
+    checkGroupFormValid();
+  }
+});
+
+function logout() {
+  // 🔥 저장된 로그인 정보 삭제
+  localStorage.removeItem("loginId");
+  localStorage.removeItem("loginPwd");
+  localStorage.removeItem("adminId");
+  localStorage.removeItem("groupIds");
+
+  showToast("👋 로그아웃 되었습니다.");
+
+  // 🔥 홈 화면으로 이동
+  setTimeout(() => {
+    location.href = "index.html?v=" + Date.now();
+  }, 800);
+}
+async function addSharedGroup() {
+  const gid = new URLSearchParams(window.location.search).get("gid");
+  const adminId = localStorage.getItem("loginId");
+
+  if (!gid) {
+    showToast("공유된 그룹 링크가 아닙니다.");
+    return;
+  }
+
+  if (!adminId) {
+    showToast("로그인이 필요합니다.");
+    return;
+  }
+
+  if (!confirm("이 공유 그룹을\n내 그룹으로 추가하시겠습니까?")) return;
+
+  showToast("추가 중...");
+
+  try {
+    const res = await fetch(CONFIG.GAS_URL, {
+      method: "POST",
+      body: JSON.stringify({
+        mode: "addSharedGroup",
+        adminId,
+        groupId: gid
+      })
+    });
+
+    const data = await res.json();
+
+    if (data.success) {
+      showToast("공유 그룹 등록 완료!");
+      loadGroups();
+    } else {
+      showToast(data.message || "등록 실패");
+    }
+
+  } catch (err) {
+    showToast("서버 오류");
+    console.error(err);
+  }
+}
+
+function showSharedGroupForm() {
+  const form = document.getElementById("sharedGroupForm");
+  form.classList.remove("hidden");
+  setTimeout(() => form.classList.add("show"), 10);
+
+  document.getElementById("sharedGroupLink").value = "";
+  checkSharedGroupValid();
+}
+
+function hideSharedGroupForm() {
+  const form = document.getElementById("sharedGroupForm");
+  form.classList.remove("show");
+  setTimeout(() => form.classList.add("hidden"), 400);
+}
+
+document.addEventListener("input", (e) => {
+  if (e.target.id === "sharedGroupLink") {
+    checkSharedGroupValid();
+  }
+});
+
+function checkSharedGroupValid() {
+  const link = document.getElementById("sharedGroupLink").value.trim();
+  const btn = document.getElementById("saveSharedBtn");
+
+  if (link) {
+    btn.classList.remove("disabled");
+    btn.disabled = false;
+  } else {
+    btn.classList.add("disabled");
+    btn.disabled = true;
+  }
+}
+
+async function saveSharedGroup() {
+  const link = document.getElementById("sharedGroupLink").value.trim();
+  const adminId = localStorage.getItem("loginId");
+
+  const saveBtn = document.getElementById("saveSharedBtn");
+  const loading = document.getElementById("sharedSaveLoading");
+
+  // 비활성 + 로딩
+  saveBtn.disabled = true;
+  saveBtn.innerText = "저장중…";
+  loading.classList.remove("hidden");
+
+  // 링크에서 gid 추출
+  const gid = link.includes("gid=")
+    ? link.split("gid=")[1].split("&")[0].trim()
+    : link.trim();
+
+  console.log("공유 그룹 추가:", adminId, gid);
+
+  try {
+    const res = await fetch(CONFIG.GAS_URL, {
+      method: "POST",
+      body: JSON.stringify({
+        mode: "addSharedGroup",
+        adminId,
+        groupId: gid
+      })
+    });
+
+    const data = await res.json();
+    console.log(data);
+
+    if (data.success) {
+      saveBtn.innerText = "저장됨 ✓";
+    } else {
+      saveBtn.innerText = "오류!";
+    }
+
+    loading.classList.add("hidden");
+
+    // 닫고 새로고침
+    setTimeout(() => {
+      hideSharedGroupForm();
+      loadGroups(adminId);
+    }, 1000);
+
+  } catch (err) {
+    console.error(err);
+    saveBtn.innerText = "오류!";
+    loading.classList.add("hidden");
+  }
+}
+
+async function addVisitLog_Index() {
+  try {
+    const device = navigator.userAgent.includes("Mobile") ? "mobile" : "pc";
+    const browser = navigator.userAgent;
+
+    const adminId = localStorage.getItem("loginId") || "";
+
+    await fetch(CONFIG.GAS_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        mode: "addLog",
+        page: "index",
+        adminId,
+        groupId: "",
+        member: "",
+        from: "index",
+        device,
+        browser
+      })
+    });
+  } catch (e) {
+    console.warn("❌ index 로그 실패:", e);
+  }
+}
+
+window.addEventListener("beforeunload", async () => {
+  const leaveTime = Date.now();
+  const stayMs = leaveTime - enterTime;
+  const staySec = Math.floor(stayMs / 1000);
+
+  // 방문 로그 저장
+  await fetch(CONFIG.GAS_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      mode: "logStay",
+      page: location.pathname.includes("record") ? "record" : "index",
+      groupId: window.groupId || "",
+      stay: staySec,
+      time: new Date().toISOString()
+    })
+  });
+});
+
+function signup() {
+  const id = document.getElementById("signupId").value.trim();
+  const pwd = document.getElementById("signupPwd").value.trim();
+  const pwd2 = document.getElementById("signupPwd2").value.trim();
+  const email = document.getElementById("signupEmail").value.trim();
+  const msg = document.getElementById("signupMsg");
+
+  msg.textContent = "";
+  msg.style.color = "white";
+
+  // 🔥 여기 추가: 로딩 ON
+  document.getElementById("signupLoading").style.display = "block";
+
+  const url = `${CONFIG.GAS_URL}?mode=signup&id=${id}&pwd=${pwd}&email=${email}`;
+
+  fetch(url)
+    .then(res => res.json())
+    .then(data => {
+
+      // 🔥 여기 추가: 로딩 OFF
+      document.getElementById("signupLoading").style.display = "none";
+
+      if (data.success) {
+        msg.style.color = "#90ff90";
+        msg.textContent = "🎉 회원가입 되었습니다. 잠시 후 이동합니다...";
+
+        localStorage.setItem("loginId", id);
+        localStorage.setItem("loginPwd", pwd);
+        localStorage.setItem("adminId", id);
+
+        setTimeout(() => {
+          showGroups(id);
+        }, 800);
+      } else {
+        msg.style.color = "#ff8080";
+        msg.textContent = "❌ " + data.message;
+      }
+    })
+    .catch(err => {
+      // 🔥 여기 추가: 로딩 OFF
+      document.getElementById("signupLoading").style.display = "none";
+      msg.style.color = "#ff8080";
+      msg.textContent = "서버 오류 발생";
+    });
+}
+
+// 페이지 로드 후 실행
+document.addEventListener("DOMContentLoaded", addVisitLog_Index);
+
+if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+  navigator.serviceWorker.controller.postMessage({ type: "SKIP_WAITING" });
+}
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js')
+      .then(reg => {
+        console.log("SW 등록 완료:", reg);
+
+        // 새 버전 자동 적용
+        if (reg.waiting) {
+          reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+        }
+
+        reg.addEventListener('updatefound', () => {
+          const newWorker = reg.installing;
+          newWorker.addEventListener('statechange', () => {
+            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+              newWorker.postMessage({ type: 'SKIP_WAITING' });
+            }
+          });
+        });
+      })
+      .catch(err => console.error("SW 등록 실패:", err));
+  });
+}
+
+</script>
+</body>
+<!-- ✅ 토스트 메시지 -->
+<div id="toast"></div>
+
+</html>
