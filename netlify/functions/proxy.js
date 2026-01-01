@@ -8,11 +8,11 @@ exports.handler = async function (event) {
   const method = event.httpMethod || "GET";
   const options = { method };
   if (method === "POST") {
-  const bodyData = JSON.parse(event.body || "{}");
-  const modeQuery = bodyData.mode ? `?mode=${bodyData.mode}` : "";
-  options.body = JSON.stringify(bodyData);
-  query = modeQuery; // ✅ 이 줄 추가: URL에도 mode를 붙이기
-}
+    const bodyData = JSON.parse(event.body || "{}");
+    const queryParams = Object.keys(bodyData).map(key => `${key}=${encodeURIComponent(bodyData[key])}`).join('&');
+    query = queryParams ? "?" + queryParams : "";
+    options.body = JSON.stringify(bodyData);
+  }
 
 
   // ✅ CORS preflight 처리

@@ -1,6 +1,10 @@
 {
   "dependencies": {
     "node-fetch": "^2.7.0",
-    "web-push": "^3.6.7"
+    "web-push": "^3.6.7",
+    "xlsx": "^0.18.5"
+  },
+  "scripts": {
+    "dev": "npx live-server --port=5000 --no-browser"
   }
 }
