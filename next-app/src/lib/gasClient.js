@@ -21,7 +21,16 @@ export const gasClient = {
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        let errorBody = null;
+        try {
+          errorBody = await response.json();
+        } catch (e) {
+          // JSON 파싱 실패 시 무시
+        }
+        const errorMsg = errorBody && errorBody.error
+          ? `HTTP error! status: ${response.status} - ${errorBody.error}`
+          : `HTTP error! status: ${response.status}`;
+        throw new Error(errorMsg);
       }
 
       return await response.json();
@@ -36,6 +45,18 @@ export const gasClient = {
   // Auth
   async login(id, pwd) {
     return this.request({ mode: 'login', id, pwd }, 'GET');
+  },
+
+  async signup(id, pwd, email) {
+    return this.request({ mode: 'signup', id, pwd, email }, 'GET');
+  },
+
+  async findId(email, firstChar) {
+    return this.request({ mode: 'findId', email, firstChar }, 'GET');
+  },
+
+  async findPwd(id, email) {
+    return this.request({ mode: 'findPwd', id, email }, 'GET');
   },
 
   async saveSub({ groupId, subscription }) {
@@ -64,6 +85,11 @@ export const gasClient = {
     return this.request({ mode: 'getPrayers', groupId, member }, 'GET');
   },
 
+  getPrayersAllGroups(groupIds) {
+    // groupIds: comma separated string
+    return this.request({ mode: 'getPrayersAllGroups', groupIds }, 'GET');
+  },
+
   savePrayer(data) {
     return this.request({ ...data, mode: 'savePrayer' });
   },
@@ -71,5 +97,15 @@ export const gasClient = {
   saveNote(data) {
     // data: { groupId, member, index, answer, comment }
     return this.request({ ...data, mode: 'saveNote' });
+  },
+
+  async addLog(data) {
+    // data: { page, adminId, groupId, member, from, device, browser }
+    return this.request({ ...data, mode: 'addLog' });
+  },
+
+  async logStay(data) {
+    // data: { page, groupId, stay, time }
+    return this.request({ ...data, mode: 'logStay' });
   }
 };

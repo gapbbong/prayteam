@@ -12,7 +12,7 @@ const APP_URL = "https://praygroup.creat1324.com";
 const ICON_URL = "/images/android-chrome-192x192.png";
 
 // ✅ 자동으로 버전 생성
-const SW_VERSION = "v20251201-1610";
+const SW_VERSION = "v20260103-1051";
 const CACHE_NAME = `${APP_NAME}-v${SW_VERSION}`;
 
 // ✅ 캐싱할 기본 파일 목록

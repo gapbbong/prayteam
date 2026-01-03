@@ -1,10 +1,12 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import LoadingDots from '@/components/LoadingDots';
 
 export default function LoginForm() {
+    const router = useRouter();
     const { login } = useAuth();
     const [id, setId] = useState('');
     const [pwd, setPwd] = useState('');
@@ -48,7 +50,7 @@ export default function LoginForm() {
                     <input
                         type="text"
                         value={id}
-                        onChange={(e) => setId(e.target.value)}
+                        onChange={(e) => setId(e.target.value.toLowerCase())}
                         disabled={loading}
                         className="w-full px-6 py-4 bg-slate-50 border-2 border-transparent focus:border-blue-500 focus:bg-white rounded-2xl outline-none transition-all font-medium text-slate-800 disabled:opacity-50"
                         placeholder="아이디를 입력하세요"
@@ -85,19 +87,40 @@ export default function LoginForm() {
                         <LoadingDots label="" />
                     ) : (
                         <>
-                            로그인하기
+                            로그인
                             <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M13 7l5 5m0 0l-5 5m5-5H6" />
                             </svg>
                         </>
                     )}
                 </button>
+
+                <div className="flex justify-center gap-4 text-sm font-bold text-slate-400 mt-4">
+                    <button
+                        type="button"
+                        onClick={() => router.push('/find-id')}
+                        className="hover:text-blue-600 transition-colors"
+                    >
+                        아이디 찾기
+                    </button>
+                    <span className="text-slate-200">|</span>
+                    <button
+                        type="button"
+                        onClick={() => router.push('/find-pwd')}
+                        className="hover:text-blue-600 transition-colors"
+                    >
+                        비밀번호 찾기
+                    </button>
+                </div>
             </form>
 
             <div className="mt-8 text-center pt-6 border-t border-slate-100">
                 <p className="text-slate-400 text-sm font-medium">아직 회원이 아니신가요?</p>
-                <button className="text-blue-600 font-bold mt-2 hover:underline">
-                    🕊️ 회원가입 하러가기
+                <button
+                    onClick={() => router.push('/signup')}
+                    className="text-blue-600 font-bold mt-2 hover:underline"
+                >
+                    🕊️ 회원가입
                 </button>
             </div>
         </div>

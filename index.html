@@ -591,7 +591,10 @@
   <div id="groupSection">
     <div class="title-bar">
       <h2>📋 내 그룹 관리</h2>
-      <button id="logoutBtn" onclick="logout()">로그아웃</button>
+      <div style="display: flex; flex-direction: column; align-items: flex-end;">
+        <span style="font-size: 10px; color: #666; margin-bottom: 2px;">v0.5.5</span>
+        <button id="logoutBtn" onclick="logout()">로그아웃</button>
+      </div>
     </div>
 
     <div id="groupGrid" class="group-grid"></div>
@@ -1400,6 +1403,22 @@
           .catch(err => console.error("SW 등록 실패:", err));
       });
     }
+
+    // ✅ 단축키 설정 (1: 전체보기, 2~: 그룹순서)
+    document.addEventListener("keydown", (e) => {
+      // Input이나 Textarea에서는 작동하지 않음
+      if (["INPUT", "TEXTAREA"].includes(e.target.tagName)) return;
+
+      const key = e.key;
+      if (key === "1") {
+        const btn = document.querySelector(".view-all-btn");
+        if (btn && btn.offsetParent !== null) btn.click();
+      } else if (key >= "2" && key <= "9") {
+        const idx = parseInt(key) - 2;
+        const groupBtns = document.querySelectorAll(".group-btn");
+        if (groupBtns[idx]) groupBtns[idx].click();
+      }
+    });
 
   </script>
 </body>

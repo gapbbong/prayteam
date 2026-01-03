@@ -1,6 +1,6 @@
 // ✅ Node 환경 (서버 함수용)
 exports.CONFIG = {
-  GAS_URL: "https://script.google.com/macros/s/AKfycby0CFJF0DUi-9VaMEyUHUXh6oalCvsj3Tg9-JnTsJP6sTRuolYoZbYlVuIEKg2fFtri/exec"
+  GAS_URL: "https://script.google.com/macros/s/AKfycbzxjl8ZO8sCMGY7WNXGT0H4VxlTHYYqd-HVPEVOEGMg9fvdmaF1fRH4amG_9CnY2DP5/exec"
 };
 
 // ✅ Netlify Function이 호출될 때 실행되는 handler 정의

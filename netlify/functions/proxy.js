@@ -4,15 +4,26 @@ const { CONFIG } = require("./config.js");
 const GAS_URL = CONFIG.GAS_URL;
 
 exports.handler = async function (event) {
-  let query = event.rawQuery ? "?" + event.rawQuery : "";
   const method = event.httpMethod || "GET";
+  let query = "";
+
+  if (event.rawQuery) {
+    query = "?" + event.rawQuery;
+  } else if (event.queryStringParameters) {
+    const qp = new URLSearchParams(event.queryStringParameters).toString();
+    if (qp) query = "?" + qp;
+  }
+
   const options = { method };
   if (method === "POST") {
     const bodyData = JSON.parse(event.body || "{}");
     const queryParams = Object.keys(bodyData).map(key => `${key}=${encodeURIComponent(bodyData[key])}`).join('&');
-    query = queryParams ? "?" + queryParams : "";
+    if (!query) query = queryParams ? "?" + queryParams : "";
     options.body = JSON.stringify(bodyData);
   }
+
+  const targetUrl = `${GAS_URL}${query}`;
+  console.log(`[Proxy] Forwarding ${method} to: ${targetUrl}`);
 
 
   // ✅ CORS preflight 처리
@@ -29,7 +40,7 @@ exports.handler = async function (event) {
   }
 
   try {
-    const response = await fetch(`${GAS_URL}${query}`, options);
+    const response = await fetch(targetUrl, options);
     const text = await response.text();
 
     let body;

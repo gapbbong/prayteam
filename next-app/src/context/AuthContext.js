@@ -10,12 +10,35 @@ export function AuthProvider({ children }) {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        // Check for existing session
-        const savedUser = localStorage.getItem('prayteam_user');
-        if (savedUser) {
-            setUser(JSON.parse(savedUser));
-        }
-        setLoading(false);
+        const initAuth = async () => {
+            const savedCreds = localStorage.getItem('prayteam_creds');
+            if (savedCreds) {
+                try {
+                    const { id, pwd } = JSON.parse(savedCreds);
+                    if (id && pwd) {
+                        // Auto login attempt
+                        const result = await gasClient.login(id, pwd);
+                        if (result.success) {
+                            const userData = {
+                                id: id,
+                                name: result.name || id,
+                                adminId: result.adminId || id
+                            };
+                            setUser(userData);
+                            // Session is valid
+                        } else {
+                            // Invalid credentials
+                            localStorage.removeItem('prayteam_creds');
+                        }
+                    }
+                } catch (error) {
+                    console.error('Auto login failed', error);
+                    // On error, we might want to stay logged out
+                }
+            }
+            setLoading(false);
+        };
+        initAuth();
     }, []);
 
     const login = async (id, pwd) => {
@@ -28,7 +51,9 @@ export function AuthProvider({ children }) {
                     adminId: result.adminId || id
                 };
                 setUser(userData);
-                localStorage.setItem('prayteam_user', JSON.stringify(userData));
+                // Save credentials for auto-login
+                localStorage.setItem('prayteam_creds', JSON.stringify({ id, pwd }));
+                localStorage.setItem('prayteam_user', JSON.stringify(userData)); // Backward compatibility
                 return { success: true };
             } else {
                 throw new Error(result.message || '로그인에 실패했습니다.');
@@ -42,6 +67,7 @@ export function AuthProvider({ children }) {
     const logout = () => {
         setUser(null);
         localStorage.removeItem('prayteam_user');
+        localStorage.removeItem('prayteam_creds');
     };
 
     return (

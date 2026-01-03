@@ -10,31 +10,28 @@ function doGet(e) {
   const mode = e.parameter.mode || "";
 
   let output;
-  switch (mode) {
-    case "login": output = handleLogin(e); break;
-    case "signup": output = handleSignup(e); break;
-    case "getGroups": output = handleGetGroups(e); break;
-    case "getGroupById": output = handleGetGroupById(e); break;
-    case "getPrayers": output = handleGetPrayers(e); break;
-    case "getPrayersAll": output = handleGetPrayersAll(e); break;
-    case "getSubs": output = handleGetSubs(e); break;
-    default:
-      output = ContentService.createTextOutput("Invalid request")
-        .setMimeType(ContentService.MimeType.TEXT);
+  try {
+    switch (mode) {
+      case "login": output = handleLogin(e); break;
+      case "signup": output = handleSignup(e); break;
+      case "findId": 
+      case "findid": output = handleFindId(e); break;
+      case "findPwd": 
+      case "findpwd": output = handleFindPwd(e); break;
+      case "getGroups": output = handleGetGroups(e); break;
+      case "getGroupById": output = handleGetGroupById(e); break;
+      case "getPrayers": output = handleGetPrayers(e); break;
+      case "getPrayersAll": output = handleGetPrayersAll(e); break;
+      case "getPrayersAllGroups": output = handleGetPrayersAllGroups(e); break;
+      case "getSubs": output = handleGetSubs(e); break;
+      default:
+        output = ContentService.createTextOutput("Invalid request: mode=" + mode)
+          .setMimeType(ContentService.MimeType.TEXT);
+    }
+  } catch (err) {
+    return jsonOutput({ error: err.toString(), stack: err.stack });
   }
 
-  // 🔥 [최적화 2] 클라이언트 캐시 방지 헤더 추가
-  // 카톡 인앱 브라우저 등에서 이전 데이터를 보여주는 문제 해결
-  try {
-    if (output && typeof output.getMimeType === 'function' && output.getMimeType() === ContentService.MimeType.JSON) {
-      return output
-        .setHeader('Cache-Control', 'no-cache, no-store, must-revalidate')
-        .setHeader('Pragma', 'no-cache')
-        .setHeader('Expires', '0');
-    }
-  } catch (e) {
-    // setHeader 지원하지 않는 경우 그냥 반환
-  }
   return output;
 }
 
@@ -136,6 +133,75 @@ function handleSignup(e) {
   const joinedAt = Utilities.formatDate(new Date(), "Asia/Seoul", "yyyy-MM-dd HH:mm:ss");
   sheet.appendRow([id, pwd, joinedAt, email]);
   return jsonOutput({ success: true, message: "회원가입되었습니다." });
+}
+
+function handleFindId(e) {
+  const email = e.parameter.email || "";
+  const firstChar = e.parameter.firstChar || "";
+  
+  if (!email || !firstChar) {
+    return jsonOutput({ success: false, message: "이메일과 아이디 첫 글자를 모두 입력해주세요." });
+  }
+
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName("관리자계정");
+  if (!sheet) return jsonOutput({ success: false, message: "관리자 시트 없음" });
+
+  const data = sheet.getDataRange().getValues();
+  const headers = data.shift();
+  const idCol = headers.indexOf("관리자ID");
+  const emailCol = headers.indexOf("이메일");
+
+  if (emailCol === -1) return jsonOutput({ success: false, message: "데이터베이스에 이메일 정보가 없습니다." });
+
+  const found = data.filter(r => {
+    const rId = String(r[idCol] || "");
+    const rEmail = String(r[emailCol] || "");
+    return rEmail === email && rId.startsWith(firstChar);
+  });
+
+  if (found.length === 0) {
+    return jsonOutput({ success: false, message: "일치하는 계정을 찾을 수 없습니다." });
+  }
+
+  const ids = found.map(r => r[idCol]);
+  return jsonOutput({ success: true, ids: ids });
+}
+
+function handleFindPwd(e) {
+  const id = e.parameter.id || "";
+  const email = e.parameter.email || "";
+
+  if (!id || !email) {
+    return jsonOutput({ success: false, message: "아이디와 이메일을 모두 입력해주세요." });
+  }
+
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName("관리자계정");
+  if (!sheet) return jsonOutput({ success: false, message: "관리자 시트 없음" });
+
+  const data = sheet.getDataRange().getValues();
+  const headers = data.shift();
+  const idCol = headers.indexOf("관리자ID");
+  const pwdCol = headers.indexOf("비밀번호");
+  const emailCol = headers.indexOf("이메일");
+
+  if (idCol === -1 || pwdCol === -1 || emailCol === -1) {
+    return jsonOutput({ success: false, message: "데이터베이스 구조 오류 (컬럼 누락)" });
+  }
+
+  const found = data.find(r => {
+    const rId = String(r[idCol] || "");
+    const rEmail = String(r[emailCol] || "");
+    return rId === id && rEmail === email;
+  });
+
+  if (!found) {
+    return jsonOutput({ success: false, message: "아이디와 이메일이 일치하는 계정을 찾을 수 없습니다." });
+  }
+
+  const pwd = String(found[pwdCol]);
+  return jsonOutput({ success: true, password: pwd });
 }
 
 function handleSaveNote(e) {
@@ -522,15 +588,17 @@ function handleGetPrayers(e) {
       const resultCs = [];
       const resultDs = [];
       const resultVs = [];
+      const resultIndices = []; // [NEW] 슬롯 번호 저장용
       
       prayerCols.forEach((pIdx, k) => {
         const pVal = row[pIdx];
         if (pVal && String(pVal).trim() !== "") {
            resultPrayers.push(pVal);
-           resultRs.push(rCols[k] !== undefined ? row[rCols[k]] : ""); // 매칭되는 R
+           resultRs.push(rCols[k] !== undefined ? row[rCols[k]] : "");
            resultCs.push(cCols[k] !== undefined ? row[cCols[k]] : "");
-           resultDs.push(dCols[k] !== undefined ? row[dCols[k]] : ""); // 매칭되는 D
-           resultVs.push(vCols[k] !== undefined ? row[vCols[k]] : ""); // 매칭되는 V
+           resultDs.push(dCols[k] !== undefined ? row[dCols[k]] : "");
+           resultVs.push(vCols[k] !== undefined ? row[vCols[k]] : "");
+           resultIndices.push(k + 1); // [NEW] 실제 슬롯 번호(1-based)
         }
       });
 
@@ -540,8 +608,9 @@ function handleGetPrayers(e) {
         prayers: resultPrayers,
         responses: resultRs,
         comments: resultCs,
-        dates: resultDs,        // [NEW]
-        visibilities: resultVs, // [NEW]
+        dates: resultDs,
+        visibilities: resultVs,
+        indices: resultIndices, // [NEW]
         time: row[timeCol]
       });
     }
@@ -551,12 +620,40 @@ function handleGetPrayers(e) {
 }
 
 function handleGetPrayersAll(e) {
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
   const groupId = e.parameter.groupId || "";
-  const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(groupId);
-  if (!sheet) return jsonOutput([]);
+  return jsonOutput(getGroupPrayersData(ss, groupId));
+}
+
+// [신설] 다중 그룹 벌크 로딩 핸들러
+function handleGetPrayersAllGroups(e) {
+  try {
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    const groupIds = (e.parameter.groupIds || "").split(",");
+    let allResults = [];
+    groupIds.forEach(gid => {
+      const trimmedId = gid.trim();
+      if (trimmedId) {
+        const groupData = getGroupPrayersData(ss, trimmedId);
+        if (Array.isArray(groupData)) {
+          allResults = allResults.concat(groupData);
+        }
+      }
+    });
+    return jsonOutput(allResults);
+  } catch (err) {
+    return jsonOutput({ error: "Bulk Loading Error: " + err.toString() });
+  }
+}
+
+// [공통] 특정 그룹의 최신 기도 데이터 추출 함수
+function getGroupPrayersData(ss, groupId) {
+  if (!ss) ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName(groupId);
+  if (!sheet) return [];
 
   const data = sheet.getDataRange().getValues();
-  if (data.length < 2) return jsonOutput([]);
+  if (data.length < 2) return [];
 
   const headers = data.shift().map(String);
   const idxGroup = headers.indexOf("그룹명");
@@ -567,7 +664,6 @@ function handleGetPrayersAll(e) {
   const pMap = []; 
   headers.forEach((h, i) => {
      if (h.startsWith("기도제목")) {
-       // 숫자 추출: 기도제목1 -> 1
        const num = parseInt(h.replace("기도제목", ""));
        if (!isNaN(num)) {
          pMap.push({
@@ -589,25 +685,35 @@ function handleGetPrayersAll(e) {
     if (!member || latest[member]) continue;
     
     const prayers = [];
-    const dates = [];
+    const rs = [];
+    const cs = [];
+    const ds = [];
+    const vs = [];
     
     pMap.forEach(m => {
       const pVal = row[m.pIdx];
       if (pVal && String(pVal).trim() !== "") {
         prayers.push(pVal);
-        dates.push(m.dIdx > -1 ? row[m.dIdx] : "");
+        rs.push(m.rIdx > -1 ? row[m.rIdx] : "");
+        cs.push(m.cIdx > -1 ? row[m.cIdx] : "");
+        ds.push(m.dIdx > -1 ? row[m.dIdx] : "");
+        vs.push(m.vIdx > -1 ? row[m.vIdx] : "");
       }
     });
     
     latest[member] = {
+      그룹ID: groupId, // [추가]
       그룹명: row[idxGroup],
       멤버이름: member,
       prayers: prayers,
-      dates: dates, // [NEW] 전체목록에서도 날짜 필요할 수 있음
+      responses: rs,
+      comments: cs,
+      dates: ds,
+      visibilities: vs,
       작성시간: row[updateTime],
     };
   }
-  return jsonOutput(Object.values(latest));
+  return Object.values(latest);
 }
 
 /* -------------------------------------------------------------------------- */

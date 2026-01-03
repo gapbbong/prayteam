@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="ko">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -44,6 +45,7 @@
       align-items: center;
       margin-bottom: 20px;
     }
+
     .top-bar h2 {
       flex: 1;
       text-align: center;
@@ -52,6 +54,7 @@
       font-size: 22px;
       font-weight: 700;
     }
+
     .icon-btn {
       background: none;
       border: none;
@@ -76,9 +79,10 @@
       margin-bottom: 6px;
       color: var(--accent-gold);
     }
+
     .prayer-text {
       font-size: 18px;
-  font-weight: 600;
+      font-weight: 600;
       line-height: 1.5;
       margin-bottom: 12px;
       color: #eee;
@@ -111,16 +115,28 @@
       font-weight: 700;
     }
 
-    .ans-btn[data-type="응답됨"].active  { background: var(--ans-yellow); }
-    .ans-btn[data-type="기대중"].active  { background: var(--ans-blue); }
-    .ans-btn[data-type="거절하심"].active { background: var(--ans-orange); }
-    .ans-btn[data-type="다른방향"].active { background: var(--ans-purple); }
+    .ans-btn[data-type="응답됨"].active {
+      background: var(--ans-yellow);
+    }
+
+    .ans-btn[data-type="기대중"].active {
+      background: var(--ans-blue);
+    }
+
+    .ans-btn[data-type="거절하심"].active {
+      background: var(--ans-orange);
+    }
+
+    .ans-btn[data-type="다른방향"].active {
+      background: var(--ans-purple);
+    }
 
     /* 코멘트 */
     .textarea {
       width: 100%;
       padding: 4px;
-      min-height: 10px !important;   /* 초기 높이 줄임 */
+      min-height: 10px !important;
+      /* 초기 높이 줄임 */
       max-height: 300px;
       border-radius: 10px;
       border: 1px solid var(--border-light);
@@ -131,7 +147,8 @@
       margin-bottom: 6px;
       line-height: 1.4;
       overflow-y: hidden;
-      font-family: inherit;          /* 본문이랑 같은 글꼴 */
+      font-family: inherit;
+      /* 본문이랑 같은 글꼴 */
     }
 
     /* 초기화 / 저장 버튼 영역 */
@@ -153,49 +170,55 @@
     }
 
     .save-btn {
-  flex: 1;
-  padding: 10px;
-  border-radius: 10px;
-  background: #888;           /* ← 초기 회색 */
-  border: none;
-  color: #fff;
-  font-size: 15px;
-  font-weight: 700;
-  cursor: not-allowed;        /* ← 비활성화 */
-  opacity: 0.4;               /* ← 흐리게 */
-  font-family: inherit;
-  transition: 0.15s;
-}
+      flex: 1;
+      padding: 10px;
+      border-radius: 10px;
+      background: #888;
+      /* ← 초기 회색 */
+      border: none;
+      color: #fff;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: not-allowed;
+      /* ← 비활성화 */
+      opacity: 0.4;
+      /* ← 흐리게 */
+      font-family: inherit;
+      transition: 0.15s;
+    }
 
-.save-btn.active {
-  background: var(--blue);    /* ← 활성화 시 파란색 */
-  cursor: pointer;
-  opacity: 1;
-}
+    .save-btn.active {
+      background: var(--blue);
+      /* ← 활성화 시 파란색 */
+      cursor: pointer;
+      opacity: 1;
+    }
 
     .save-btn.saving {
       background: var(--blue-dark);
     }
 
     /* 필터 모달 (간단 스타일) */
-.filter-modal {
-  display: none;      /* ← 강제 비표시 */
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.4);
-  justify-content: center;
-  align-items: center;
-  z-index: 9999;                 /* ← 반드시 최상단으로 */
-}
+    .filter-modal {
+      display: none;
+      /* ← 강제 비표시 */
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.4);
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+      /* ← 반드시 최상단으로 */
+    }
 
-.filter-box {
-  background: #fff;
-  color: #000;
-  padding: 18px;
-  border-radius: 14px;
-  width: 70%;
-  max-width: 320px;
-}
+    .filter-box {
+      background: #fff;
+      color: #000;
+      padding: 18px;
+      border-radius: 14px;
+      width: 70%;
+      max-width: 320px;
+    }
 
     .filter-item {
       padding: 8px 4px;
@@ -203,90 +226,132 @@
       font-size: 16px;
       cursor: pointer;
     }
+
     .filter-item:last-child {
       border-bottom: none;
     }
-	
-	.prayer-text::before {
-  content: "✔";
-  color: #FFD54F;   /* 노란색 체크 */
-  font-weight: 900;
-  margin-right: 6px;
-}
 
+    .prayer-text::before {
+      content: "✔";
+      color: #FFD54F;
+      /* 노란색 체크 */
+      font-weight: 900;
+      margin-right: 6px;
+    }
   </style>
 </head>
 
 <body>
 
-<div class="top-bar">  
-  <h2 id="title"></h2>
-  <button class="icon-btn" onclick="toggleFilter()" style="font-size:16px;">필터</button>
-</div>
-
-<div id="list"></div>
-
-<!-- 필터 -->
-<div id="filterModal" class="filter-modal" onclick="toggleFilter()">
-  <div class="filter-box" onclick="event.stopPropagation()">
-    <div class="filter-item" onclick="setFilter('전체')">전체 보기</div>
-    <div class="filter-item" onclick="setFilter('응답됨')">응답됨</div>
-    <div class="filter-item" onclick="setFilter('기대중')">기대중</div>
-    <div class="filter-item" onclick="setFilter('거절하심')">거절하심</div>
-    <div class="filter-item" onclick="setFilter('다른방향')">다른 방향</div>
+  <div class="top-bar">
+    <button class="icon-btn" onclick="location.href='index.html?fromRecord=1'" style="font-size:16px;">◀ 뒤로</button>
+    <h2 id="title"></h2>
+    <button class="icon-btn" onclick="toggleFilter()" style="font-size:16px;">필터</button>
   </div>
-</div>
 
-<script>
-const params = new URLSearchParams(location.search);
-const groupId = params.get("groupId");
-const groupName = params.get("groupName");
-const member = params.get("member");
+  <div id="list"></div>
 
-document.getElementById("title").textContent = `${groupName} - ${member}`;
+  <!-- 필터 -->
+  <div id="filterModal" class="filter-modal" onclick="toggleFilter()">
+    <div class="filter-box" onclick="event.stopPropagation()">
+      <div class="filter-item" onclick="setFilter('전체')">전체 보기</div>
+      <div class="filter-item" onclick="setFilter('응답됨')">응답됨</div>
+      <div class="filter-item" onclick="setFilter('기대중')">기대중</div>
+      <div class="filter-item" onclick="setFilter('거절하심')">거절하심</div>
+      <div class="filter-item" onclick="setFilter('다른방향')">다른 방향</div>
+    </div>
+  </div>
 
-let currentFilter = "전체";
+  <script>
+    const params = new URLSearchParams(location.search);
+    const groupId = params.get("groupId");
+    const groupName = params.get("groupName");
+    const member = params.get("member");
 
-// 초기 로드
-loadNotes();
+    document.getElementById("title").textContent = `${groupName} - ${member}`;
 
-// -------------------------------
-// 기도제목 + R/C 읽어서 렌더
-// -------------------------------
-function loadNotes() {
-  fetch(`${CONFIG.GAS_URL}?mode=getPrayers&groupId=${encodeURIComponent(groupId)}&member=${encodeURIComponent(member)}`)
-    .then(res => res.json())
-    .then(data => {
-      const prayers   = data.prayers   || [];
-      const responses = data.responses || [];
-      const comments  = data.comments  || [];
-      renderList(prayers, responses, comments);
-    });
-}
+    let prayerIndices = []; // [NEW] 실제 컬럼 번호를 저장할 전역 변수
 
-// -------------------------------
-// UI 렌더링
-// -------------------------------
-function renderList(prayers, responses, comments) {
-  const wrap = document.getElementById("list");
-  wrap.innerHTML = "";
+    // 초기 로드
+    loadNotes();
 
-  prayers.forEach((text, idx) => {
-    const index   = idx + 1;
-    const savedR  = responses[idx] || "";
-    const savedC  = comments[idx]  || "";
+    // 뒤로가기 방지 및 제어 (백스페이스 등)
+    // 히스토리 관리 (해시 기반)
+    if (typeof window !== 'undefined') {
+      // 현재 페이지 진입 시 해시가 없으면 #notes 추가
+      if (!window.location.hash) {
+        window.history.replaceState({ step: 'base' }, "", window.location.href + "#base");
+        window.history.pushState({ step: 'notes' }, "", window.location.href + "#notes");
+      }
 
-    // 필터 적용
-    if (currentFilter !== "전체" && savedR !== currentFilter) {
-      // 해당 응답이 아니면 이 카드 건너뛰기
-      return;
+      window.onpopstate = function (event) {
+        // 사용자가 뒤로가기를 눌러 #base 상태로 돌아오면 index.html로 보냄
+        if (!window.location.hash || window.location.hash === '#base') {
+          location.href = "index.html?fromRecord=1";
+        }
+      };
     }
 
-    const card = document.createElement("div");
-    card.className = "card";
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Backspace") {
+        const tag = e.target.tagName.toLowerCase();
+        const isEditable = e.target.isContentEditable || tag === "input" || tag === "textarea";
+        if (!isEditable) {
+          e.preventDefault();
+          // 백스페이스 시에도 브라우저 뒤로가기 실행 -> onpopstate가 처리함
+          window.history.back();
+        }
+      }
+    });
 
-    card.innerHTML = `
+    // -------------------------------
+    // 기도제목 + R/C 읽어서 렌더
+    // -------------------------------
+    function loadNotes() {
+      fetch(`${CONFIG.GAS_URL}?mode=getPrayers&groupId=${encodeURIComponent(groupId)}&member=${encodeURIComponent(member)}`)
+        .then(res => res.json())
+        .then(data => {
+          const prayers = data.prayers || [];
+          const responses = data.responses || [];
+          const comments = data.comments || [];
+          const dates = data.dates || [];
+          const visibilities = data.visibilities || [];
+          prayerIndices = data.indices || []; // [NEW]
+
+          renderList(prayers, responses, comments, dates, visibilities);
+        });
+    }
+
+    // -------------------------------
+    // UI 렌더링
+    // -------------------------------
+    function renderList(prayers, responses, comments, dates, visibilities) {
+      const wrap = document.getElementById("list");
+      wrap.innerHTML = "";
+
+      prayers.forEach((text, idx) => {
+        const index = idx + 1;
+        const savedR = responses[idx] || "";
+        const savedC = comments[idx] || "";
+        const savedD = dates[idx] || "";
+        const savedV = visibilities[idx] || "";
+
+        // [중요] 숨김(Hidden) 처리된 항목은 렌더링에서 제외
+        if (savedV === 'Hidden') return;
+
+        // 필터 적용
+        if (currentFilter !== "전체" && savedR !== currentFilter) {
+          return;
+        }
+
+        const card = document.createElement("div");
+        card.className = "card";
+        card.id = `card-${index}`;
+
+        card.innerHTML = `
+	<div class="prayer-title" id="date-${index}" style="font-size: 13px; color: #aaa; margin-bottom: 4px;"></div>
 	<div class="prayer-text"> ${text || ""}</div>
+      <div class="view-status" id="status-${index}" style="font-size: 11px; margin-bottom: 8px; color: #4f9cff;"></div>
       <div class="btn-row" id="ans-row-${index}">
         ${makeAnsButton("응답됨", index)}
         ${makeAnsButton("기대중", index)}
@@ -298,37 +363,43 @@ function renderList(prayers, responses, comments) {
         placeholder="코멘트 입력..."></textarea>
 
       <div class="btn-area">
-        <button class="reset-btn" onclick="resetNote(${index})">초기화</button>
+        <button class="reset-btn" onclick="resetNote(${index})" style="flex: 0.6; font-size: 13px;">초기화</button>
+        <button class="reset-btn" onclick="archiveNote(${index})" style="flex: 0.6; font-size: 13px; background: #3c3c4a;">보관</button>
         <button class="save-btn" id="save-${index}" onclick="saveNote(${index})">저장</button>
       </div>
     `;
 
-    wrap.appendChild(card);
+        wrap.appendChild(card);
 
-    // 저장되어 있던 응답/코멘트 UI에 반영
-    if (savedR) {
-      selectAnswer(index, savedR, true);
+        // 날짜 표시
+        if (savedD) {
+          document.getElementById(`date-${index}`).textContent = `📅 ${savedD}`;
+        }
+
+        // 저장되어 있던 응답/코멘트 UI에 반영
+        if (savedR) {
+          selectAnswer(index, savedR, true);
+        }
+        const textarea = document.getElementById(`cmt-${index}`);
+        textarea.value = savedC || "";
+        autoResize(textarea);
+        textarea.addEventListener("input", () => {
+          autoResize(textarea);
+          updateSaveActive(index);
+        });
+
+      });
+
+      if (wrap.innerHTML === "") {
+        wrap.innerHTML = `<p style="text-align:center; color:#aaa; margin-top:40px;">해당되는 기도제목이 없습니다.</p>`;
+      }
     }
-    const textarea = document.getElementById(`cmt-${index}`);
-    textarea.value = savedC || "";
-    autoResize(textarea);
-    textarea.addEventListener("input", () => {
-  autoResize(textarea);
-  updateSaveActive(index);     // ← 반드시 추가!
-});
 
-  });
-
-  if (wrap.innerHTML === "") {
-    wrap.innerHTML = `<p style="text-align:center; color:#aaa; margin-top:40px;">해당되는 기도제목이 없습니다.</p>`;
-  }
-}
-
-// -------------------------------
-// 응답 버튼 생성/선택
-// -------------------------------
-function makeAnsButton(label, index) {
-  return `
+    // -------------------------------
+    // 응답 버튼 생성/선택
+    // -------------------------------
+    function makeAnsButton(label, index) {
+      return `
     <button class="ans-btn"
       data-type="${label}"
       onclick="selectAnswer(${index}, '${label}')"
@@ -336,121 +407,161 @@ function makeAnsButton(label, index) {
       ${label}
     </button>
   `;
-}
+    }
 
-function selectAnswer(index, type, isInitial = false) {
-  const row = document.getElementById(`ans-row-${index}`);
-  if (!row) return;
+    function selectAnswer(index, type, isInitial = false) {
+      const row = document.getElementById(`ans-row-${index}`);
+      if (!row) return;
 
-  [...row.children].forEach(btn => btn.classList.remove("active"));
-  const btn = document.getElementById(`ans-${index}-${type}`);
-  if (btn) btn.classList.add("active");
+      [...row.children].forEach(btn => btn.classList.remove("active"));
+      const btn = document.getElementById(`ans-${index}-${type}`);
+      if (btn) btn.classList.add("active");
 
-  if (!isInitial) {
-    window[`answer_${index}`] = type;
-  }
-}
+      if (!isInitial) {
+        window[`answer_${index}`] = type;
+      }
+    }
 
-// -------------------------------
-// 자동 높이 조절
-// -------------------------------
-function autoResize(el) {
-  el.style.height = "auto";
-  el.style.height = el.scrollHeight + "px";
-}
+    // -------------------------------
+    // 자동 높이 조절
+    // -------------------------------
+    function autoResize(el) {
+      el.style.height = "auto";
+      el.style.height = el.scrollHeight + "px";
+    }
 
-// -------------------------------
-// 초기화
-// -------------------------------
-function resetNote(index) {
-  window[`answer_${index}`] = "";
-  const cmt = document.getElementById(`cmt-${index}`);
-  if (cmt) {
-    cmt.value = "";
-    autoResize(cmt);
-  }
+    // -------------------------------
+    // 초기화
+    // -------------------------------
+    function resetNote(index) {
+      window[`answer_${index}`] = "";
+      const cmt = document.getElementById(`cmt-${index}`);
+      if (cmt) {
+        cmt.value = "";
+        autoResize(cmt);
+      }
 
-  const row = document.getElementById(`ans-row-${index}`);
-  if (row) {
-    [...row.children].forEach(btn => btn.classList.remove("active"));
-  }
-}
+      const row = document.getElementById(`ans-row-${index}`);
+      if (row) {
+        [...row.children].forEach(btn => btn.classList.remove("active"));
+      }
+    }
 
-// -------------------------------
-// 저장 기능
-// -------------------------------
-function saveNote(index) {
-  const btn = document.getElementById(`save-${index}`);
-  btn.classList.add("saving");
-  btn.textContent = "저장중...";
+    // -------------------------------
+    // 저장 기능
+    // -------------------------------
+    function saveNote(index) {
+      const btn = document.getElementById(`save-${index}`);
+      btn.classList.add("saving");
+      btn.textContent = "저장중...";
 
-  const answer = window[`answer_${index}`] || "";
-  const comment = document.getElementById(`cmt-${index}`).value || "";
+      const answer = window[`answer_${index}`] || "";
+      const comment = document.getElementById(`cmt-${index}`).value || "";
 
-  const body = {
-    mode: "saveNote",
-    groupId,
-    member,
-    index,
-    answer,
-    comment
-  };
+      // [수정] 배열 순번 대신 실제 시트 컬럼(Slot) 인덱스 사용
+      const realIndex = prayerIndices[index - 1];
 
-  fetch(CONFIG.GAS_URL, {
-    method: "POST",
-    body: JSON.stringify(body)
-  })
-    .then(r => r.json())
-    .then(() => {
-      btn.textContent = "저장됨 ✓";
-      setTimeout(() => {
-        btn.textContent = "저장";
-        btn.classList.remove("saving");
-      }, 1300);
-    });
-}
+      const body = {
+        mode: "saveNote",
+        groupId,
+        member,
+        index: realIndex,
+        answer,
+        comment
+      };
 
-// -------------------------------
-// 필터
-// -------------------------------
-function toggleFilter() {
-  const modal = document.getElementById("filterModal");
-  modal.style.display = (modal.style.display === "flex") ? "none" : "flex";
-}
+      fetch(CONFIG.GAS_URL, {
+        method: "POST",
+        body: JSON.stringify(body)
+      })
+        .then(r => r.json())
+        .then(() => {
+          btn.textContent = "저장됨 ✓";
+          setTimeout(() => {
+            btn.textContent = "저장";
+            btn.classList.remove("saving");
+          }, 1300);
+        });
+    }
 
-function setFilter(type) {
-  currentFilter = type;
-  toggleFilter();
-  loadNotes();
-}
+    // -------------------------------
+    // 보관(숨김) 기능
+    // -------------------------------
+    function archiveNote(index) {
+      // 글로벌 룰에 따라 별도의 확인창 없이 즉시 보관 처리합니다.
+      const realIndex = prayerIndices[index - 1];
+      const body = {
+        mode: "saveNote",
+        groupId,
+        member,
+        index: realIndex,
+        answer: "기대중", // 보관 시 응답은 초기화 권장
+        comment: document.getElementById(`cmt-${index}`).value || "",
+        visibility: "Hidden"
+      };
 
-function selectAnswer(index, type, isInitial = false) {
-  const row = document.getElementById(`ans-row-${index}`);
-  if (!row) return;
+      fetch(CONFIG.GAS_URL, {
+        method: "POST",
+        body: JSON.stringify(body)
+      })
+        .then(r => r.json())
+        .then(() => {
+          // 화면에서 카드 제거
+          const card = document.getElementById(`card-${index}`);
+          if (card) {
+            card.style.opacity = "0";
+            card.style.transform = "scale(0.9)";
+            setTimeout(() => card.remove(), 300);
+          }
+        });
+    }
 
-  [...row.children].forEach(btn => btn.classList.remove("active"));
-  const btn = document.getElementById(`ans-${index}-${type}`);
-  if (btn) btn.classList.add("active");
+    // -------------------------------
+    // 필터
+    // -------------------------------
+    function toggleFilter() {
+      const modal = document.getElementById("filterModal");
+      modal.style.display = (modal.style.display === "flex") ? "none" : "flex";
+    }
 
-  if (!isInitial) {
-    window[`answer_${index}`] = type;
-    updateSaveActive(index);            // ← 이 줄 추가!
-  }
-}
+    function setFilter(type) {
+      currentFilter = type;
+      toggleFilter();
+      loadNotes();
+    }
 
-function updateSaveActive(index) {
-  const btn = document.getElementById(`save-${index}`);
-  const answer = window[`answer_${index}`] || "";
-  const comment = document.getElementById(`cmt-${index}`).value.trim();
+    function selectAnswer(index, type, isInitial = false) {
+      const row = document.getElementById(`ans-row-${index}`);
+      if (!row) return;
 
-  if (answer !== "" || comment !== "") {
-    btn.classList.add("active");
-  } else {
-    btn.classList.remove("active");
-  }
-}
+      [...row.children].forEach(btn => btn.classList.remove("active"));
+      const btn = document.getElementById(`ans-${index}-${type}`);
+      if (btn) btn.classList.add("active");
 
-</script>
+      if (!isInitial) {
+        window[`answer_${index}`] = type;
+        updateSaveActive(index);            // ← 이 줄 추가!
+      }
+    }
+
+    function updateSaveActive(index) {
+      const btn = document.getElementById(`save-${index}`);
+      const answer = window[`answer_${index}`] || "";
+      const comment = document.getElementById(`cmt-${index}`).value.trim();
+
+      if (answer !== "" || comment !== "") {
+        btn.classList.add("active");
+      } else {
+        btn.classList.remove("active");
+      }
+    }
+
+  </script>
+
+  <div style="text-align: center; margin-top: 30px; padding-bottom: 20px;">
+    <span style="font-size: 10px; color: #666; margin-bottom: 2px;">v0.5.5</span>
+  </div>
 
 </body>
+
 </html>

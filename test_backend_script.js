@@ -2,7 +2,7 @@
 const fetch = require('node-fetch'); // Assuming node-fetch is available or using built-in in Node 18+
 
 // The NEW Deployment URL provided by the user
-const GAS_URL = "https://script.google.com/macros/s/AKfycby0CFJF0DUi-9VaMEyUHUXh6oalCvsj3Tg9-JnTsJP6sTRuolYoZbYlVuIEKg2fFtri/exec";
+const GAS_URL = "https://script.google.com/macros/s/AKfycbzxjl8ZO8sCMGY7WNXGT0H4VxlTHYYqd-HVPEVOEGMg9fvdmaF1fRH4amG_9CnY2DP5/exec";
 
 async function request(mode, method = 'GET', data = {}) {
     let url = `${GAS_URL}?mode=${mode}`;

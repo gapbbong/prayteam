@@ -1,13 +1,14 @@
 <!DOCTYPE html>
 <html lang="ko">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>전체 기도문 보기</title>
   <style>
-  body {
-  font-family: "Noto Sans KR", sans-serif !important;
-}
+    body {
+      font-family: "Noto Sans KR", sans-serif !important;
+    }
 
     body {
       background: linear-gradient(180deg, #1e1e2f, #151522);
@@ -19,6 +20,7 @@
       flex-direction: column;
       min-height: 100vh;
     }
+
     header {
       display: flex;
       justify-content: space-between;
@@ -27,13 +29,16 @@
       background: #24243b;
       box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
     }
+
     header h1 {
-	font-size: clamp(24px, 5vw, 34px);
-  font-weight: 700;
+      font-size: clamp(24px, 5vw, 34px);
+      font-weight: 700;
       color: #ffdf6b;
       margin: 0;
-  text-align: center; /* ✅ 가운데 정렬 추가 */
+      text-align: center;
+      /* ✅ 가운데 정렬 추가 */
     }
+
     header button {
       background: #ff6b6b;
       border: none;
@@ -42,125 +47,151 @@
       padding: 6px 12px;
       cursor: pointer;
     }
+
     main {
-  flex: 1;
-  padding: 20px;
-  overflow-y: auto;
-  max-width: 600px;     /* record.html과 유사한 폭 */
-  margin: 0 auto;       /* 가운데 배치 */
-}
+      flex: 1;
+      padding: 20px;
+      overflow-y: auto;
+      max-width: 600px;
+      /* record.html과 유사한 폭 */
+      margin: 0 auto;
+      /* 가운데 배치 */
+    }
 
     .prayer-card {
-  background: rgba(255, 255, 255, 0.07);
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  padding: 16px 14px;
-  border-radius: 14px;
-  margin-bottom: 20px;
-  box-shadow: 0 4px 14px rgba(255, 255, 255, 0.1);
-}
+      background: rgba(255, 255, 255, 0.07);
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      padding: 16px 14px;
+      border-radius: 14px;
+      margin-bottom: 20px;
+      box-shadow: 0 4px 14px rgba(255, 255, 255, 0.1);
+    }
 
     .prayer-card h3 {
-  color: var(--accent-gold);
-  margin: 0 0 10px;
-  font-size: 20px;
-  font-weight: 600;
-}
+      color: var(--accent-gold);
+      margin: 0 0 10px;
+      font-size: 20px;
+      font-weight: 600;
+    }
 
     .prayer-card p {
-  font-size: 18px;
-  font-weight: 600;
+      font-size: 18px;
+      font-weight: 600;
       margin: 0;
       white-space: pre-line;
       line-height: 1.5;
     }
-	.prayer-card small {
-  display: block;
-  text-align: right;
-  color: #aaa;
-  font-size: 13px;
-  margin-top: 6px;
-}
-/* ✅ 로딩 토스트 */
-.toast-loading {
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  background: rgba(0, 0, 0, 0.85);
-  color: #ffdf6b;
-  padding: 14px 24px;
-  border-radius: 10px;
-  font-size: clamp(16px, 3vw, 20px);
-  display: none; /* 기본 숨김 */
-  z-index: 1000;
-  white-space: nowrap;
-  text-align: center;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-  animation: fadeInOut 1s ease-in-out infinite alternate;
-}
 
-/* ✅ 점 애니메이션 */
-.toast-loading .dots {
-  display: inline-block;
-  width: 1em;
-  text-align: left;
-}
+    .prayer-card small {
+      display: block;
+      text-align: right;
+      color: #aaa;
+      font-size: 13px;
+      margin-top: 6px;
+    }
 
-@keyframes fadeInOut {
-  from { opacity: 0.8; }
-  to { opacity: 1; }
-}
+    /* ✅ 로딩 토스트 */
+    .toast-loading {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(0, 0, 0, 0.85);
+      color: #ffdf6b;
+      padding: 14px 24px;
+      border-radius: 10px;
+      font-size: clamp(16px, 3vw, 20px);
+      display: none;
+      /* 기본 숨김 */
+      z-index: 1000;
+      white-space: nowrap;
+      text-align: center;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+      animation: fadeInOut 1s ease-in-out infinite alternate;
+    }
 
-@keyframes dotPulse {
-  0% { content: ""; }
-  25% { content: "."; }
-  50% { content: ".."; }
-  75% { content: "..."; }
-  100% { content: ""; }
-}
+    /* ✅ 점 애니메이션 */
+    .toast-loading .dots {
+      display: inline-block;
+      width: 1em;
+      text-align: left;
+    }
 
-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 16px 20px;
-  background: #24243b;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
-}
+    @keyframes fadeInOut {
+      from {
+        opacity: 0.8;
+      }
 
-.home-btn {
-  background: none;
-  border: none;
-  color: #ffdf6b;
-  font-size: clamp(22px, 4vw, 30px);
-  cursor: pointer;
-}
+      to {
+        opacity: 1;
+      }
+    }
 
-.spacer {
-  width: 24px; /* 홈 버튼 크기 맞추기 위한 공간 */
-}
+    @keyframes dotPulse {
+      0% {
+        content: "";
+      }
 
-/* 이름: 노란색 */
-.member-name {
-  color: #ffdf6b !important;
-  font-weight: 600;
-}
+      25% {
+        content: ".";
+      }
 
-/* (그룹명): 흰색 */
-.group-name {
-  color: #ffffff !important;
-  opacity: 0.85;
-  font-weight: 500;
-}
+      50% {
+        content: "..";
+      }
 
+      75% {
+        content: "...";
+      }
+
+      100% {
+        content: "";
+      }
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px 20px;
+      background: #24243b;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+    }
+
+    .home-btn {
+      background: none;
+      border: none;
+      color: #ffdf6b;
+      font-size: clamp(22px, 4vw, 30px);
+      cursor: pointer;
+    }
+
+    .spacer {
+      width: 24px;
+      /* 홈 버튼 크기 맞추기 위한 공간 */
+    }
+
+    /* 이름: 노란색 */
+    .member-name {
+      color: #ffdf6b !important;
+      font-weight: 600;
+    }
+
+    /* (그룹명): 흰색 */
+    .group-name {
+      color: #ffffff !important;
+      opacity: 0.85;
+      font-weight: 500;
+    }
   </style>
 </head>
+
 <body>
   <header>
-  <button class="home-btn" onclick="goHome()">🏠</button>
-  <h1>내 그룹 전체 기도문</h1>
-  <span class="spacer"></span>
-</header>
+    <button class="home-btn" onclick="goHome()">🏠</button>
+    <h1>내 그룹 전체 기도문</h1>
+    <span class="spacer"></span>
+  </header>
 
 
   <main id="prayerList">
@@ -168,166 +199,198 @@ header {
   </main>
 
   <script>
-  // ✅ Netlify proxy를 통해 GAS 접근
-  const scriptURL = "/.netlify/functions/proxy";
-const container = document.getElementById("prayerList");
+    // ✅ Netlify proxy를 통해 GAS 접근
+    const scriptURL = "/.netlify/functions/proxy";
+    const container = document.getElementById("prayerList");
 
-let groupIdList = [];
+    let groupIdList = [];
 
-// ✅ localStorage groupIds 안정적으로 로드 + adminId 기반 복구
-document.addEventListener("DOMContentLoaded", async () => {
+    // ✅ localStorage groupIds 안정적으로 로드 + adminId 기반 복구
+    document.addEventListener("DOMContentLoaded", async () => {
 
-  try {
-    const saved = localStorage.getItem("groupIds");
-    if (saved) {
-      groupIdList = JSON.parse(saved);
-      console.log("📦 불러온 groupIds:", groupIdList);
-    } else {
-      console.warn("⚠️ groupIds 없음. adminId로 복구 시도 중...");
-      const adminId = localStorage.getItem("adminId");
-      if (adminId) {
-        const res = await fetch(`${scriptURL}?mode=getGroups&adminId=${adminId}`);
-        const data = await res.json();
-        if (data.groups?.length) {
-          groupIdList = data.groups.map(g => g.그룹ID);
-          localStorage.setItem("groupIds", JSON.stringify(groupIdList));
-          console.log("✅ 복구된 groupIds:", groupIdList);
+      try {
+        const saved = localStorage.getItem("groupIds");
+        if (saved) {
+          groupIdList = JSON.parse(saved);
+          console.log("📦 불러온 groupIds:", groupIdList);
+        } else {
+          console.warn("⚠️ groupIds 없음. adminId로 복구 시도 중...");
+          const adminId = localStorage.getItem("adminId");
+          if (adminId) {
+            const res = await fetch(`${scriptURL}?mode=getGroups&adminId=${adminId}`);
+            const data = await res.json();
+            if (data.groups?.length) {
+              groupIdList = data.groups.map(g => g.그룹ID);
+              localStorage.setItem("groupIds", JSON.stringify(groupIdList));
+              console.log("✅ 복구된 groupIds:", groupIdList);
+            }
+          }
         }
+      } catch (err) {
+        console.error("🚨 localStorage 로드 오류:", err);
       }
+
+      // ✅ 로딩 완료 후 결과 처리
+      // ✅ 복구 완료 후 최종 확인
+      if (!groupIdList.length) {
+        console.warn("⚠️ 복구 후에도 groupIds 없음 — 로그인 필요");
+        setTimeout(() => {
+          container.innerHTML =
+            "<p>❌ 불러올 그룹이 없습니다. 먼저 로그인 후 그룹을 선택하세요.</p>";
+        }, 500); // ✅ 복구 지연 고려 (0.5초 후 표시)
+      } else {
+        await loadAllPrayers();
+      }
+    });
+
+    function formatTimeAgo(isoTime) {
+      if (!isoTime) return "작성시간 없음";
+
+      // ✅ 형식 통일: 불필요한 공백/점/AMPM 변환
+      const clean = isoTime
+        .replace(/\s+/g, " ")
+        .replace(/오전|AM|am/g, "오전")
+        .replace(/오후|PM|pm/g, "오후")
+        .trim();
+
+      // ✅ 예: "2025. 11. 2. 오후 10:11:31" 또는 "2025-11-02 오후 10:11:31"
+      const match = clean.match(
+        /(\d{4})[.\s-]*(\d{1,2})[.\s-]*(\d{1,2})[.\s]*(오전|오후)?\s*(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?/
+      );
+
+      let past;
+      if (match) {
+        let [_, y, m, d, ampm, h, min, s = "00"] = match;
+        h = Number(h);
+        if (ampm === "오후" && h < 12) h += 12;
+        if (ampm === "오전" && h === 12) h = 0;
+        past = new Date(`${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}T${String(h).padStart(2, "0")}:${min}:${s}`);
+      } else {
+        // ✅ ISO 포맷 ("2025-11-03T16:37:40") 지원
+        past = new Date(isoTime);
+      }
+
+      if (isNaN(past)) return "시간 오류";
+
+      const diff = (Date.now() - past.getTime()) / 1000;
+      if (diff < 60) return "방금 전";
+      if (diff < 3600) return `${Math.floor(diff / 60)}분 전`;
+      if (diff < 86400) return `${Math.floor(diff / 3600)}시간 전`;
+      if (diff < 2592000) return `${Math.floor(diff / 86400)}일 전`;
+      return `${Math.floor(diff / 2592000)}달 전`;
     }
-  } catch (err) {
-    console.error("🚨 localStorage 로드 오류:", err);
-  }
 
-  // ✅ 로딩 완료 후 결과 처리
-    // ✅ 복구 완료 후 최종 확인
-  if (!groupIdList.length) {
-    console.warn("⚠️ 복구 후에도 groupIds 없음 — 로그인 필요");
-    setTimeout(() => {
-      container.innerHTML =
-        "<p>❌ 불러올 그룹이 없습니다. 먼저 로그인 후 그룹을 선택하세요.</p>";
-    }, 500); // ✅ 복구 지연 고려 (0.5초 후 표시)
-  } else {
-    await loadAllPrayers();
-  }
-});
+    async function loadAllPrayers() {
+      const toast = document.getElementById("toastLoading");
+      const container = document.getElementById("prayerList");
 
-function formatTimeAgo(isoTime) {
-  if (!isoTime) return "작성시간 없음";
+      toast.style.display = "flex";
+      toast.innerHTML = `⏳ 데이터를 불러오는 중입니다. 잠시만 기다려 주세요<span class="dots">...</span>`;
+      container.innerHTML = "";
 
-  // ✅ 형식 통일: 불필요한 공백/점/AMPM 변환
-  const clean = isoTime
-    .replace(/\s+/g, " ")
-    .replace(/오전|AM|am/g, "오전")
-    .replace(/오후|PM|pm/g, "오후")
-    .trim();
+      if (!groupIdList.length) {
+        container.innerHTML = "<p>❌ 불러올 그룹이 없습니다.</p>";
+        toast.style.display = "none";
+        return;
+      }
 
-  // ✅ 예: "2025. 11. 2. 오후 10:11:31" 또는 "2025-11-02 오후 10:11:31"
-  const match = clean.match(
-    /(\d{4})[.\s-]*(\d{1,2})[.\s-]*(\d{1,2})[.\s]*(오전|오후)?\s*(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?/
-  );
+      try {
+        // ✅ 단일 벌크 요청으로 모든 데이터 가져오기
+        const groupIdsStr = groupIdList.join(",");
+        const res = await fetch(`${scriptURL}?mode=getPrayersAllGroups&groupIds=${groupIdsStr}`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const allPrayers = await res.json();
 
-  let past;
-  if (match) {
-    let [_, y, m, d, ampm, h, min, s = "00"] = match;
-    h = Number(h);
-    if (ampm === "오후" && h < 12) h += 12;
-    if (ampm === "오전" && h === 12) h = 0;
-    past = new Date(`${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}T${String(h).padStart(2, "0")}:${min}:${s}`);
-  } else {
-    // ✅ ISO 포맷 ("2025-11-03T16:37:40") 지원
-    past = new Date(isoTime);
-  }
+        // [수정] 숨김(Hidden) 처리된 기도제목 필터링 및 시트 순서(groupIdList 순서) 유지
+        const processedList = [];
+        let currentGroupName = "";
 
-  if (isNaN(past)) return "시간 오류";
+        // 데이터 조회 편의를 위해 그룹별로 맵핑
+        const groupMap = {};
+        allPrayers.forEach(item => {
+          if (!groupMap[item.그룹명]) groupMap[item.그룹명] = [];
+          groupMap[item.그룹명].push(item);
+        });
 
-  const diff = (Date.now() - past.getTime()) / 1000;
-  if (diff < 60) return "방금 전";
-  if (diff < 3600) return `${Math.floor(diff / 60)}분 전`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)}시간 전`;
-  if (diff < 2592000) return `${Math.floor(diff / 86400)}일 전`;
-  return `${Math.floor(diff / 2592000)}달 전`;
-}
+        // 사용자가 보유한 groupIdList 순서대로 렌더링 준비
+        // (참고: allPrayers에 그룹ID가 포함되어 있지 않으므로 그룹명으로 매칭 시도하거나 백엔드 수정 필요)
+        // 일단 백엔드에서 그룹명은 넘어오므로 이를 활용
+        groupIdList.forEach(gid => {
+          // 원래는 gid로 매칭해야 정확하지만, 현재 allPrayers에는 그룹ID가 없으므로 
+          // allPrayers를 그대로 사용하되, 이미 API에서 groupIdList 순서대로 처리해서 줌(GAS handleGetPrayersAllGroups 참고)
+        });
 
-  async function loadAllPrayers() {
-  const toast = document.getElementById("toastLoading");
-  const dots = toast.querySelector(".dots");
+        // GAS handleGetPrayersAllGroups가 이미 groupIds 순서대로 allResults.push를 하므로
+        // 넘어온 순서를 그대로 믿고 처리해도 됨.
 
-  // ✅ 토스트 표시 + 점 애니메이션 시작
-  toast.style.display = "flex";
-  let dotCount = 0;
-  const dotInterval = setInterval(() => {
-    dotCount = (dotCount + 1) % 4;
-    dots.textContent = ".".repeat(dotCount);
-  }, 500);
+        allPrayers.forEach(item => {
+          const visibleIndices = (item.visibilities || [])
+            .map((v, i) => v !== 'Hidden' ? i : -1)
+            .filter(i => i !== -1);
 
-  container.innerHTML = "";
-  if (!groupIdList.length) {
-    container.innerHTML = "<p>❌ 불러올 그룹이 없습니다. 먼저 로그인 후 그룹을 선택하세요.</p>";
-    toast.style.display = "none";
-    clearInterval(dotInterval);
-    return;
-  }
+          if (visibleIndices.length === 0) return;
 
-  // ✅ 병렬 fetch로 모든 그룹 동시에 요청
-try {
-  const fetchTasks = groupIdList.map(async gid => {
-    console.log("➡️ 요청 중:", `${scriptURL}?mode=getPrayersAll&groupId=${gid}`);
-    const res = await fetch(`${scriptURL}?mode=getPrayersAll&groupId=${gid}`);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data = await res.json();
-    return data.map(item => ({ ...item, 그룹ID: gid }));
-  });
+          const filteredItem = {
+            ...item,
+            prayers: (item.prayers || []).filter((_, i) => visibleIndices.includes(i)),
+            dates: (item.dates || []).filter((_, i) => visibleIndices.includes(i))
+          };
 
-  // ✅ 모든 요청 병렬로 처리
-  const results = await Promise.allSettled(fetchTasks);
-  const allPrayers = results
-    .filter(r => r.status === "fulfilled")
-    .flatMap(r => r.value);
+          const isFirstInGroup = (filteredItem.그룹명 !== currentGroupName);
+          if (isFirstInGroup) currentGroupName = filteredItem.그룹명;
 
-  // ✅ 최신 작성시간 순 정렬
-  allPrayers.sort((a, b) => new Date(b.작성시간) - new Date(a.작성시간));
+          filteredItem.isFirstInGroup = isFirstInGroup;
+          processedList.push(filteredItem);
+        });
 
-  // ✅ 렌더링
-  container.innerHTML = allPrayers.map(item => `
-  <div class="prayer-card">
-    <h3>
-  <span class="member-name">${item.멤버이름}</span>
-  <span class="group-name">(${item.그룹명})</span>
-</h3>
+        // ✅ 렌더링
+        container.innerHTML = processedList.map(item => `
+          <div class="prayer-card">
+            <h3 style="display: flex; align-items: baseline; gap: 8px;">
+              <span class="member-name">${item.멤버이름}</span>
+              ${item.isFirstInGroup ? `<span class="group-name" style="font-size: 14px; opacity: 0.7;">(${item.그룹명})</span>` : ''}
+            </h3>
+            <p>${(item.prayers || []).map(p => `· ${p}`).join("\n")}</p>
+            <small class="time">${formatTimeAgo(item.작성시간)}</small>
+          </div>
+        `).join("");
 
-    <p>
-  ${ (item.prayers || [])
-      .map(p => `· ${p}`)      // ← 가운데 점 추가
-      .join("\n") }
-</p>
+      } catch (err) {
+        console.error("🚨 전체 요청 실패:", err);
+        container.innerHTML = `<p>⚠️ 데이터 로드 실패 (${err.message})</p>`;
+      }
 
-    <small class="time">${formatTimeAgo(item.작성시간)}</small>
+      toast.style.display = "none";
+    }
+
+    // 히스토리 관리 (해시 기반)
+    if (typeof window !== 'undefined') {
+      if (!window.location.hash) {
+        window.history.replaceState({ step: 'base' }, "", window.location.href + "#base");
+        window.history.pushState({ step: 'all' }, "", window.location.href + "#all");
+      }
+
+      window.onpopstate = function (event) {
+        if (!window.location.hash || window.location.hash === '#base') {
+          location.href = "index.html?fromRecord=1";
+        }
+      };
+    }
+
+    function goHome() {
+      window.history.back();
+    }
+
+  </script>
+  <!-- 🔹 로딩 토스트 -->
+  <div id="toastLoading" class="toast-loading">
+    ⏳ 기도제목 불러오는 중<span class="dots">...</span>
   </div>
-`).join("");
 
-
-} catch (err) {
-  console.error("🚨 전체 요청 실패:", err);
-  container.innerHTML = `<p>⚠️ 데이터 로드 실패 (${err.message})</p>`;
-}
-
-  // ✅ 모든 그룹 로딩 완료 후 토스트 숨김
-  clearInterval(dotInterval);
-  toast.style.display = "none";
-}
-
-function goHome() {
-  const adminId = localStorage.getItem("adminId");
-  if (!adminId) return (window.location.href = "index.html");
-  window.location.href = "index.html?fromRecord=1";
-}
-
-</script>
-<!-- 🔹 로딩 토스트 -->
-<div id="toastLoading" class="toast-loading">
-  ⏳ 기도제목 불러오는 중<span class="dots">...</span>
-</div>
+  <div style="text-align: center; margin-top: 30px; padding-bottom: 20px;">
+    <span style="font-size: 10px; color: #666; margin-top: 4px;">v0.5.5</span>
+  </div>
 
 </body>
+
 </html>

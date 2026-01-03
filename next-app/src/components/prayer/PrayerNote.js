@@ -34,6 +34,7 @@ export default function PrayerNote({
         index: i,
         response: responses[i],
         comment: comments[i],
+        date: dates[i],
         meta: metadata ? metadata[i] : null
     }));
 
@@ -89,8 +90,98 @@ export default function PrayerNote({
         onUpdateStatus(index, '기대중');
     };
 
-    // Helper: Calculate relative time
+    // Helper: Robust Date Parser for Korean/GAS formats
+    const parseSafeDate = (dateStr) => {
+        if (!dateStr) return null;
+        try {
+            let cleanStr = String(dateStr).trim();
+            // 2. Check for AM/PM
+            let isPM = cleanStr.includes('오후') || cleanStr.includes('PM');
+            let isAM = cleanStr.includes('오전') || cleanStr.includes('AM');
+
+            // 3. Split Date and Time
+            let [datePart, timePart] = cleanStr.split(/\s+(?:오전|오후|AM|PM)?\s*/);
+
+            if (!timePart && cleanStr.includes(' ')) {
+                const part = cleanStr.split(' ');
+                datePart = part[0];
+                timePart = part.slice(1).join(' ').replace(/(?:오전|오후|AM|PM)/, '').trim();
+            }
+
+            const separator = datePart.includes('.') ? '.' : '-';
+            const [y, m, d] = datePart.split(separator).map(Number);
+
+            if (!y || !m || !d) return null;
+
+            let h = 0, min = 0, s = 0;
+            if (timePart) {
+                const [hStr, mStr, sStr] = timePart.split(':');
+                h = parseInt(hStr) || 0;
+                min = parseInt(mStr) || 0;
+                s = parseInt(sStr) || 0;
+
+                if (isPM && h < 12) h += 12;
+                if (isAM && h === 12) h = 0;
+            }
+
+            return new Date(y, m - 1, d, h, min, s);
+        } catch (e) {
+            return null;
+        }
+    };
+
+    // Helper: Robust Date Parser (Regex Improved)
+    const parseSafeDateRegex = (dateStr) => {
+        if (!dateStr) return null;
+        try {
+            const cleanStr = String(dateStr).trim();
+            const dateRegex = /(\d{4})[./-\s.]+(\d{1,2})[./-\s.]+(\d{1,2})/;
+            const match = cleanStr.match(dateRegex);
+            if (!match) return null;
+
+            const y = parseInt(match[1]);
+            const m = parseInt(match[2]);
+            const d = parseInt(match[3]);
+
+            let h = 0, min = 0, s = 0;
+            const isPM = cleanStr.includes('오후') || cleanStr.includes('PM');
+            const isAM = cleanStr.includes('오전') || cleanStr.includes('AM');
+
+            const timeMatch = cleanStr.match(/(\d{1,2}):(\d{2})(?::(\d{2}))?/);
+            if (timeMatch) {
+                h = parseInt(timeMatch[1]);
+                min = parseInt(timeMatch[2]);
+                s = timeMatch[3] ? parseInt(timeMatch[3]) : 0;
+                if (isPM && h < 12) h += 12;
+                if (isAM && h === 12) h = 0;
+            }
+            return new Date(y, m - 1, d, h, min, s);
+        } catch (e) { return null; }
+    };
+
     const getRelativeTime = (dateStr) => {
+        const date = parseSafeDateRegex(dateStr);
+        // Fallback: If parsing fails, return original string
+        if (!date || isNaN(date.getTime())) return dateStr;
+
+        const now = new Date();
+        const diffMs = now - date;
+        if (isNaN(diffMs)) return dateStr;
+
+        const diffSec = Math.floor(diffMs / 1000);
+        if (diffSec < 60) return '방금 전';
+        if (diffSec < 3600) return `${Math.floor(diffSec / 60)}분 전`;
+        if (diffSec < 86400) return `${Math.floor(diffSec / 3600)}시간 전`;
+
+        const diffDays = Math.floor(diffSec / 86400);
+        if (diffDays < 30) return `${diffDays}일 전`;
+        const diffMonths = Math.floor(diffDays / 30);
+        if (diffMonths < 12) return `${diffMonths}개월 전`;
+        return `${Math.floor(diffMonths / 12)}년 전`;
+    };
+
+    // Helper: Calculate relative time (DEPRECATED)
+    const _deprecated_getRelativeTime = (dateStr) => {
         if (!dateStr) return '';
 
         try {
@@ -100,14 +191,43 @@ export default function PrayerNote({
 
             let date;
             if (timePart) {
-                const [h, min, s] = timePart.split(':').map(Number);
-                date = new Date(y, m - 1, d, h, min, s);
+                // Handle "오전/오후" if present (GAS Format: yyyy.MM.dd a h:mm:ss)
+                let [p1, p2, p3] = timePart.split(' ');
+                let h, min, s;
+
+                // If format is "HH:mm:ss"
+                if (!p2) {
+                    [h, min, s] = p1 ? p1.split(':').map(Number) : [0, 0, 0];
+                } else {
+                    // If format is "a h:mm:ss" (e.g. "오전 10:30:20")
+                    // timePart might actually be passed as just "10:30:20" if split(' ') logic above was simple.
+                    // But wait, split(' ') on "2024.01.01 오전 10:00" gives ["2024.01.01", "오전", "10:00"]
+                    // Let's re-parse correctly below.
+                }
+                // Simpler re-parse logic inside try block:
+                const fullStr = dateStr.replace('오전', 'AM').replace('오후', 'PM');
+                const parsedDate = new Date(fullStr);
+                if (!isNaN(parsedDate)) {
+                    date = parsedDate;
+                } else {
+                    // Fallback to manual parse
+                    const [hStr, mStr, sStr] = timePart.split(':');
+                    h = parseInt(hStr) || 0;
+                    min = parseInt(mStr) || 0;
+                    s = parseInt(sStr) || 0;
+                    date = new Date(y, m - 1, d, h, min, s);
+                }
             } else {
                 date = new Date(y, m - 1, d);
             }
 
+            if (isNaN(date.getTime())) return ''; // Invalid Date check
+
             const now = new Date();
             const diffMs = now - date;
+
+            if (isNaN(diffMs)) return ''; // Safety check
+
             const diffSec = Math.floor(diffMs / 1000);
 
             if (diffSec < 60) return '방금 전';
@@ -132,13 +252,10 @@ export default function PrayerNote({
             // Default View (Single Member) - Reduced spacing
             return (
                 <div className="space-y-3">
-                    {visiblePrayers.map((prayer, index) =>
+                    {visiblePrayers.map((pObj, idx) =>
                         renderPrayerItem({
-                            text: prayer,
-                            index,
-                            response: responses[index],
-                            comment: comments[index],
-                            localIndex: index
+                            ...pObj,
+                            localIndex: idx
                         })
                     )}
                 </div>
@@ -149,34 +266,31 @@ export default function PrayerNote({
         const content = [];
         let lastGroupName = '';
         let lastMemberId = '';
+        let memberItems = [];
         let memberPrayerCount = 0;
-        let memberItems = []; // Store items for current member to find latest date
-
+        let isFirstMemberInGroup = true;
         const pushMemberFooter = (items) => {
-            // Find latest date among text strings
+            // Find latest date among text strings or fallback to member update time
             let latestDate = '';
             let latestDateObj = new Date(0);
 
+            // 1. Check individual prayer dates
             items.forEach(item => {
                 const dStr = dates[item.index];
                 if (dStr) {
-                    try {
-                        const [datePart, timePart] = dStr.split(' ');
-                        const [y, m, d] = datePart.split('.').map(Number);
-                        let date;
-                        if (timePart) {
-                            const [h, min, s] = timePart.split(':').map(Number);
-                            date = new Date(y, m - 1, d, h, min, s);
-                        } else {
-                            date = new Date(y, m - 1, d);
-                        }
-                        if (date > latestDateObj) {
-                            latestDateObj = date;
-                            latestDate = dStr;
-                        }
-                    } catch (e) { }
+                    const d = parseSafeDateRegex(dStr);
+                    if (d && !isNaN(d) && d > latestDateObj) {
+                        latestDateObj = d;
+                        latestDate = dStr;
+                    }
                 }
             });
+
+            // 2. If no valid prayer date, use member's updatedAt from metadata
+            if (!latestDate && items.length > 0 && items[0].meta && items[0].meta.updatedAt) {
+                // Always fallback to member update time even if parsing fails (getRelativeTime handles it)
+                latestDate = items[0].meta.updatedAt;
+            }
 
             if (latestDate) {
                 content.push(
@@ -187,34 +301,27 @@ export default function PrayerNote({
                     </div>
                 );
             } else {
-                content.push(<div key={`spacer-${items[0].index}`} className="mb-3"></div>);
+                // content.push(<div key={`spacer-${items[0].index}`} className="mb-3"></div>);
             }
         };
 
         visiblePrayers.forEach((item, idx) => {
-            const memberId = item.meta.memberName; // Use only member name for deduplication
+            const memberId = item.meta.memberName;
             const currentGroupName = item.meta.groupName;
 
-            // Check for Group Change -> Insert Group Header
+            // Check for Group Change -> Flash previous member & Insert Divider
             if (currentGroupName !== lastGroupName) {
-                // If we were in the middle of a member, flush footer (though group change usually implies member change too)
                 if (memberItems.length > 0) {
                     pushMemberFooter(memberItems);
                     memberItems = [];
                 }
 
-                content.push(
-                    <div key={`group-header-${currentGroupName}`} className="mt-10 mb-6 first:mt-2">
-                        <div className="flex items-center gap-2">
-                            <span className={`px-3 py-1.5 rounded-xl text-sm font-bold text-white bg-gradient-to-br ${item.meta.gradientClass || 'from-slate-400 to-slate-500'} shadow-sm`}>
-                                {currentGroupName}
-                            </span>
-                            <div className="h-px bg-slate-100 flex-1"></div>
-                        </div>
-                    </div>
-                );
+                if (lastGroupName !== '') {
+                    content.push(<div key={`divider-${currentGroupName}`} className="h-4" />);
+                }
                 lastGroupName = currentGroupName;
-                lastMemberId = ''; // Reset member tracking on group switch to ensure header prints
+                lastMemberId = '';
+                isFirstMemberInGroup = true;
             }
 
             if (memberId !== lastMemberId) {
@@ -228,16 +335,23 @@ export default function PrayerNote({
                 lastMemberId = memberId;
                 memberPrayerCount = 0;
 
-                // New Member Section Header (Without Group Badge)
+
+                // New Member Section Header with Group Name (Only for first member)
                 content.push(
-                    <div key={`header-${memberId}`} className="mt-6 mb-2 first:mt-0">
+                    <div key={`header-${memberId}-${item.meta.groupName}`} className="pt-8 mt-2 mb-4 border-t border-dashed border-slate-200 first:pt-0 first:mt-0 first:border-0">
                         <div className="flex items-center gap-2 border-b border-slate-100 pb-1">
                             <span className="text-xl font-black text-slate-800 tracking-tight pl-1">
                                 {item.meta.memberName}
+                                {isFirstMemberInGroup && (
+                                    <span className={`text-sm font-bold ml-2 bg-gradient-to-r ${item.meta.gradientClass} bg-clip-text text-transparent`}>
+                                        ({item.meta.groupName})
+                                    </span>
+                                )}
                             </span>
                         </div>
                     </div>
                 );
+                isFirstMemberInGroup = false; // 이후 멤버는 표시 안 함
             }
 
             content.push(renderPrayerItem({ ...item, localIndex: memberPrayerCount }, true));
@@ -254,7 +368,7 @@ export default function PrayerNote({
         return <div className="space-y-1">{content}</div>;
     };
 
-    const renderPrayerItem = ({ text, index, response, comment, meta, localIndex }, isCompact = false) => {
+    const renderPrayerItem = ({ text, index, response, comment, date, meta, localIndex }, isCompact = false) => {
         const isExpanded = expandedIndex === index;
 
         return (
@@ -279,7 +393,7 @@ export default function PrayerNote({
                         <div className="flex-1">
                             {!isExpanded ? (
                                 <div className="flex justify-between items-start gap-3">
-                                    <p className={`text-slate-800 font-bold ${isCompact ? 'text-base' : 'text-lg'} leading-relaxed break-keep`}>
+                                    <p className={`text-slate-800 font-bold ${isCompact ? 'text-lg' : 'text-xl'} leading-relaxed break-keep whitespace-pre-wrap`}>
                                         {text}
                                     </p>
 
@@ -291,13 +405,13 @@ export default function PrayerNote({
                                                 {response}
                                             </span>
                                         )}
-                                        {/* Date Badge REMOVED */}
+                                        {/* Date Badge REMOVED (Back to Group Footer) */}
                                     </div>
                                 </div>
                             ) : (
                                 <div onClick={(e) => e.stopPropagation()}>
                                     {metadata ? (
-                                        <p className="text-base font-bold text-slate-800 leading-relaxed px-1">
+                                        <p className="text-lg font-bold text-slate-800 leading-relaxed px-1">
                                             {text}
                                         </p>
                                     ) : (
@@ -305,7 +419,7 @@ export default function PrayerNote({
                                             value={tempPrayerText}
                                             onChange={(e) => setTempPrayerText(e.target.value)}
                                             onBlur={() => handlePrayerEditSubmit(index)}
-                                            className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-base font-bold text-slate-800 focus:border-blue-500 focus:outline-none resize-none"
+                                            className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-lg font-bold text-slate-800 focus:border-blue-500 focus:outline-none resize-none"
                                             rows={2}
                                         />
                                     )}
@@ -441,9 +555,20 @@ export default function PrayerNote({
             )}
 
             {visiblePrayers.length === 0 ? (
-                <div className="text-center py-16 space-y-4">
-                    <div className="text-4xl text-slate-300">🌱</div>
-                    <p className="text-slate-400 font-bold tabular-nums">기도제목을 불러오는 중입니다...</p>
+                <div className="text-center py-20 space-y-4 animate-in fade-in zoom-in-95 duration-500">
+                    <div className="text-5xl animate-bounce-subtle">
+                        {showArchived ? '📦' : '🌱'}
+                    </div>
+                    <div className="space-y-1">
+                        <p className="text-slate-500 font-black text-xl">
+                            {showArchived ? '보관된 기도제목이 없습니다' : '아직 기도제목이 없습니다'}
+                        </p>
+                        <p className="text-slate-400 font-bold text-sm">
+                            {showArchived
+                                ? '보관함이 비어있네요!'
+                                : '첫 기도를 입력하고 응답을 기다려보세요!'}
+                        </p>
+                    </div>
                 </div>
             ) : (
                 renderContent()

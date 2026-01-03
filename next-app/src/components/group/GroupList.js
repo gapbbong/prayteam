@@ -3,10 +3,21 @@
 export default function GroupList({ groups, onSelectGroup, onAddGroup, onViewAll }) {
     if (!groups || groups.length === 0) {
         return (
-            <div className="text-center py-16 animate-in fade-in duration-700">
-                <div className="text-4xl animate-bounce mb-4">🏠</div>
-                <h3 className="text-xl font-bold text-slate-800 mb-2">속한 그룹이 없습니다.</h3>
-                <p className="text-slate-400 text-sm">관리자에게 문의하여 그룹에 가입해 주세요.</p>
+            <div className="flex flex-col items-center justify-center py-20 animate-in fade-in duration-700">
+                <div className="w-20 h-20 bg-blue-50 rounded-[2rem] flex items-center justify-center mb-6 animate-bounce-subtle">
+                    <span className="text-4xl">✨</span>
+                </div>
+                <h3 className="text-2xl font-black text-slate-800 mb-2">아직 그룹이 없습니다</h3>
+                <p className="text-slate-400 font-bold mb-8 text-center max-w-xs leading-relaxed">
+                    새로운 기도 그룹을 만들고<br />멤버들을 초대해보세요!
+                </p>
+                <button
+                    onClick={onAddGroup}
+                    className="px-8 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-2xl font-black text-lg shadow-xl shadow-blue-200 hover:shadow-2xl hover:scale-105 active:scale-95 transition-all flex items-center gap-2 group"
+                >
+                    <span className="text-xl">➕</span>
+                    새 그룹 만들기
+                </button>
             </div>
         );
     }
@@ -18,8 +29,8 @@ export default function GroupList({ groups, onSelectGroup, onAddGroup, onViewAll
                 <p className="text-slate-400 font-bold mt-2 tracking-wide text-sm">함께 기도할 그룹을 선택해주세요</p>
             </div>
 
-            {/* Dynamic Grid: 1 column if <= 2 items (including add button), 2 columns otherwise */}
-            <div className={`grid gap-3 ${groups.length + 2 <= 2 ? 'grid-cols-1' : 'grid-cols-2'}`}>
+            {/* Group Buttons Grid */}
+            <div className={`grid gap-3 ${groups.length <= 2 ? 'grid-cols-1' : 'grid-cols-2'}`}>
                 {groups.map((group, idx) => {
                     // Gradient colors for variety
                     const gradients = [
@@ -80,7 +91,10 @@ export default function GroupList({ groups, onSelectGroup, onAddGroup, onViewAll
                         </button>
                     );
                 })}
+            </div>
 
+            {/* Action Buttons - Always at bottom, horizontal layout */}
+            <div className={`grid gap-3 mt-6 ${groups.length >= 2 ? 'grid-cols-2' : 'grid-cols-1'}`}>
                 {/* Add Group Button */}
                 <button
                     onClick={onAddGroup}
@@ -95,15 +109,26 @@ export default function GroupList({ groups, onSelectGroup, onAddGroup, onViewAll
                 </button>
 
                 {/* View All Prayers Button */}
-                <button
-                    onClick={onViewAll}
-                    className="group relative w-full text-left p-3 bg-white/50 rounded-[2rem] border-2 border-dashed border-purple-300 hover:border-purple-500 hover:shadow-lg transition-all active:scale-95 flex items-center gap-3"
-                >
-                    <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform shadow-sm flex-shrink-0">
-                        <span className="text-2xl">📋</span>
-                    </div>
-                    <span className="text-base font-bold text-slate-500 group-hover:text-purple-600 transition-colors">전체 기도제목</span>
-                </button>
+                {groups.length >= 2 && (
+                    <button
+                        onClick={onViewAll}
+                        className="group relative w-full overflow-hidden rounded-[2rem] shadow-lg hover:shadow-2xl hover:-translate-y-1 transition-all active:scale-95"
+                    >
+                        {/* Gradient Background */}
+                        <div className="absolute inset-0 bg-gradient-to-br from-indigo-500 via-purple-600 to-violet-700 opacity-95 group-hover:opacity-100 transition-opacity" />
+
+                        {/* Content */}
+                        <div className="relative p-3 flex items-center gap-3">
+                            <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform shadow-sm flex-shrink-0">
+                                <span className="text-2xl">📋</span>
+                            </div>
+                            <div className="flex flex-col">
+                                <span className="text-base font-black text-white drop-shadow-sm">전체 기도제목</span>
+                                <span className="text-[10px] font-bold text-white/70">모든 그룹의 기도 소식</span>
+                            </div>
+                        </div>
+                    </button>
+                )}
             </div>
         </div>
     );

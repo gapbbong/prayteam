@@ -1,15 +1,23 @@
 import { NextResponse } from 'next/server';
 
-const GAS_URL = 'https://script.google.com/macros/s/AKfycby0CFJF0DUi-9VaMEyUHUXh6oalCvsj3Tg9-JnTsJP6sTRuolYoZbYlVuIEKg2fFtri/exec';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbx1EsIhNi44f8ryt4GSv1JPhvQKWwYHFRKzHShJSd9LmZkNpjhnNzzc7SmDT6R_UQwj/exec';
 
 export async function GET(request) {
     const { searchParams } = new URL(request.url);
     const targetUrl = `${GAS_URL}?${searchParams.toString()}`;
+    console.log(`[Next Proxy GET] Forwarding to: ${targetUrl}`);
 
     try {
         const response = await fetch(targetUrl);
-        const data = await response.json();
-        return NextResponse.json(data);
+        const text = await response.text();
+
+        try {
+            const data = JSON.parse(text);
+            return NextResponse.json(data);
+        } catch (e) {
+            console.warn('[Next Proxy GET] Response is not JSON:', text);
+            return NextResponse.json({ success: false, message: text });
+        }
     } catch (error) {
         console.error('Proxy GET error:', error);
         return NextResponse.json({ success: false, error: error.message }, { status: 500 });
@@ -19,15 +27,18 @@ export async function GET(request) {
 export async function POST(request) {
     try {
         const body = await request.json();
-        const mode = body.mode || '';
+        const searchParams = new URL(request.url).searchParams;
 
-        // Forward all body params as query string for GAS compatibility
-        const searchParams = new URLSearchParams();
+        // Ensure mode is present in query string even for POST
+        const forwardParams = new URLSearchParams(searchParams);
         Object.keys(body).forEach(key => {
-            searchParams.append(key, body[key]);
+            if (!forwardParams.has(key)) {
+                forwardParams.append(key, body[key]);
+            }
         });
 
-        const targetUrl = `${GAS_URL}?${searchParams.toString()}`;
+        const targetUrl = `${GAS_URL}?${forwardParams.toString()}`;
+        console.log(`[Next Proxy POST] Forwarding to: ${targetUrl}`);
 
         const response = await fetch(targetUrl, {
             method: 'POST',
@@ -37,8 +48,14 @@ export async function POST(request) {
             body: JSON.stringify(body),
         });
 
-        const data = await response.json();
-        return NextResponse.json(data);
+        const text = await response.text();
+        try {
+            const data = JSON.parse(text);
+            return NextResponse.json(data);
+        } catch (e) {
+            console.warn('[Next Proxy POST] Response is not JSON:', text);
+            return NextResponse.json({ success: false, message: text });
+        }
     } catch (error) {
         console.error('Proxy POST error:', error);
         return NextResponse.json({ success: false, error: error.message }, { status: 500 });
