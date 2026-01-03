@@ -78,6 +78,10 @@ export default function Home() {
     return false;
   });
 
+  // [NEW] Capture Result State for Preview Modal
+  const [capturedImage, setCapturedImage] = useState(null);
+  const [capturedFileName, setCapturedFileName] = useState('');
+
   // Loading Progress: e.g., "1/15"
   const [loadingProgress, setLoadingProgress] = useState('');
 
@@ -721,7 +725,7 @@ export default function Home() {
         const safeMemberName = currentMember || '전체';
         const fileName = `${currentGroup?.name || '기도팀'}_${safeMemberName}_${new Date().toISOString().split('T')[0]}.png`;
 
-        // 1. 공유 API 시도
+        // 1. 공유 API 시도 (모바일)
         if (navigator.share && navigator.canShare({ files: [new File([blob], fileName, { type: 'image/png' })] })) {
           try {
             const file = new File([blob], fileName, { type: 'image/png' });
@@ -732,15 +736,19 @@ export default function Home() {
             });
             showToast('공유가 완료되었습니다!', 'success');
           } catch (shareError) {
-            console.warn('Share canceled or failed, downloading instead...', shareError);
-            showToast('이미지를 다운로드합니다.');
-            downloadImage(blob, fileName);
+            console.warn('Share canceled/failed, open preview modal', shareError);
+            // 공유 실패 시 Data URL로 변환하여 모달 띄우기 (Blob URL보다 호환성 좋음)
+            const dataUrl = canvas.toDataURL('image/png');
+            setCapturedImage(dataUrl);
+            setCapturedFileName(fileName);
           }
         }
-        // 2. 공유 API 불가 시 바로 다운로드
+        // 2. 공유 미지원 시 (PC, 인앱브라우저 등) -> Data URL 모달 띄우기
         else {
-          showToast('이미지를 다운로드합니다.');
-          downloadImage(blob, fileName);
+          // Base64 Data URL 생성
+          const dataUrl = canvas.toDataURL('image/png');
+          setCapturedImage(dataUrl);
+          setCapturedFileName(fileName);
         }
 
       } catch (blobError) {
@@ -758,15 +766,19 @@ export default function Home() {
 
   // copyToClipboard 함수 제거됨
 
-  const downloadImage = (blob, fileName) => {
-    const url = URL.createObjectURL(blob);
+  const downloadImage = (url, fileName) => {
     const a = document.createElement('a');
     a.href = url;
     a.download = fileName;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+  };
+
+  // Cleanup is simpler for data URLs (no revoke needed usually, but good practice to clear state)
+  const closeCaptureModal = () => {
+    setCapturedImage(null);
+    setCapturedFileName('');
   };
 
   if (authLoading) return <div className="min-h-screen flex items-center justify-center"><LoadingDots label="자동 로그인 중입니다..." /></div>;
@@ -929,6 +941,36 @@ export default function Home() {
         currentMember={currentMember}
         currentView={currentView}
       />
+
+      {/* Capture Preview Modal (For Manual Save) */}
+      {capturedImage && (
+        <div className="fixed inset-0 z-[60] bg-black/90 flex flex-col items-center justify-center p-4 animate-in fade-in duration-300" onClick={closeCaptureModal}>
+          <div className="relative max-w-full max-h-[80vh] bg-transparent rounded-lg overflow-visible" onClick={e => e.stopPropagation()}>
+            <img src={capturedImage} alt="Captured Prayer Note" className="max-w-full max-h-[70vh] object-contain rounded-md shadow-2xl border border-white/20" />
+
+            <div className="mt-6 flex flex-col items-center gap-3 w-full">
+              <p className="text-white text-lg font-bold animate-pulse text-center">
+                👇 이미지를 꾹 길게 눌러<br />
+                <span className="text-yellow-400 text-xl">'사진 앱에 저장'</span>을 선택하세요!
+              </p>
+              <div className="flex gap-3 w-full justify-center">
+                <button
+                  onClick={() => downloadImage(capturedImage, capturedFileName)}
+                  className="px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold transition-all flex items-center gap-2"
+                >
+                  <span>💾 PC 다운로드</span>
+                </button>
+                <button
+                  onClick={closeCaptureModal}
+                  className="px-6 py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-xl font-bold transition-all"
+                >
+                  닫기
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

@@ -56,7 +56,7 @@ export default function Sidebar({
                                 <p className="text-xs text-slate-400 dark:text-slate-500">{user?.id || '환영합니다'}</p>
                             </div>
                         </div>
-                        <p className="text-[10px] text-slate-400 dark:text-slate-500 text-right">v3.9.2</p>
+                        <p className="text-[10px] text-slate-400 dark:text-slate-500 text-right">v3.9.4</p>
                     </div>
 
                     {/* Menu Items */}
