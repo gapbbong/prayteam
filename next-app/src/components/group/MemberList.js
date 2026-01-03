@@ -16,7 +16,12 @@ export default function MemberList({ members = [], groupPrayers = {}, groupName 
 
     return (
         <div className="space-y-6 animate-in fade-in slide-in-from-right-8 duration-500">
-            {/* Header Removed - Managed by Global Header in page.js */}
+            <div className="bg-blue-50/50 border border-blue-100 rounded-2xl px-5 py-3 mb-2 animate-pulse">
+                <p className="text-blue-600 font-black text-sm md:text-base flex items-center gap-2">
+                    <span className="text-xl">💡</span>
+                    기도제목을 터치해 보세요, 기도 노트가 열립니다.
+                </p>
+            </div>
 
             <div className="grid gap-6">
                 {members.map((member) => {

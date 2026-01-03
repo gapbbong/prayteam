@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { gasClient } from '@/lib/gasClient';
 
 const STATUS_OPTIONS = [
     { id: '기대중', label: '⏳ 기대중', color: 'bg-blue-100 text-blue-700 border-blue-200' },
@@ -24,8 +25,17 @@ export default function PrayerNote({
 }) {
     // Accordion State: storing index of currently expanded item
     const [expandedIndex, setExpandedIndex] = useState(null);
-    const [tempComment, setTempComment] = useState('');
     const [tempPrayerText, setTempPrayerText] = useState('');
+    const [tempComment, setTempComment] = useState('');
+    const textareaRef = useRef(null);
+
+    // Auto-expand textarea height
+    useEffect(() => {
+        if (textareaRef.current) {
+            textareaRef.current.style.height = 'auto';
+            textareaRef.current.style.height = textareaRef.current.scrollHeight + 'px';
+        }
+    }, [tempPrayerText, expandedIndex]);
     const [newPrayerText, setNewPrayerText] = useState('');
     const [showArchived, setShowArchived] = useState(false);
 
@@ -386,26 +396,25 @@ export default function PrayerNote({
                 >
                     <div className="flex items-start gap-2">
                         {/* Number Badge */}
-                        <span className={`text-xs font-black mt-1 shrink-0 tabular-nums ${isExpanded ? 'text-blue-600' : 'text-slate-300'}`}>
+                        <span className={`text-2xl font-black mt-0.5 shrink-0 tabular-nums ${isExpanded ? 'text-blue-600' : 'text-slate-300'}`}>
                             {metadata ? localIndex + 1 : index + 1}.
                         </span>
 
                         <div className="flex-1">
                             {!isExpanded ? (
-                                <div className="flex justify-between items-start gap-3">
+                                <div className="flex justify-between items-start gap-4">
                                     <p className={`text-slate-800 font-bold ${isCompact ? 'text-lg' : 'text-xl'} leading-relaxed break-keep whitespace-pre-wrap`}>
                                         {text}
                                     </p>
 
-                                    <div className="flex flex-col items-end gap-0.5 shrink-0">
+                                    <div className="flex flex-col items-end gap-1 shrink-0">
                                         {/* Status Badge */}
                                         {response && response !== '기대중' && (
-                                            <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold border ${STATUS_OPTIONS.find(o => o.id === response)?.color || 'bg-slate-100 text-slate-400 border-slate-200'
+                                            <span className={`px-2 py-1 rounded-lg text-sm md:text-base font-black border shadow-sm ${STATUS_OPTIONS.find(o => o.id === response)?.color || 'bg-slate-100 text-slate-400 border-slate-200'
                                                 }`}>
                                                 {response}
                                             </span>
                                         )}
-                                        {/* Date Badge REMOVED (Back to Group Footer) */}
                                     </div>
                                 </div>
                             ) : (
@@ -416,11 +425,13 @@ export default function PrayerNote({
                                         </p>
                                     ) : (
                                         <textarea
+                                            ref={textareaRef}
                                             value={tempPrayerText}
                                             onChange={(e) => setTempPrayerText(e.target.value)}
                                             onBlur={() => handlePrayerEditSubmit(index)}
-                                            className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-lg font-bold text-slate-800 focus:border-blue-500 focus:outline-none resize-none"
-                                            rows={2}
+                                            className="w-full bg-white border-2 border-slate-100 rounded-xl px-4 py-3 text-lg font-black text-slate-800 focus:border-blue-400 focus:outline-none resize-none shadow-inner transition-all overflow-hidden"
+                                            rows={1}
+                                            placeholder="기도제목을 입력하세요"
                                         />
                                     )}
                                 </div>
@@ -436,16 +447,16 @@ export default function PrayerNote({
 
                         {!metadata ? (
                             <>
-                                {/* Status Toggles */}
-                                <div className="space-y-1.5">
-                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">상태 변경</p>
-                                    <div className="flex flex-wrap gap-1.5">
+                                {/* Status Toggles - 2x2 Grid */}
+                                <div className="space-y-3">
+                                    <p className="text-sm md:text-base font-black text-blue-500 uppercase tracking-wider ml-1">상태 변경</p>
+                                    <div className="grid grid-cols-2 gap-2">
                                         {STATUS_OPTIONS.map((status) => (
                                             <button
                                                 key={status.id}
                                                 onClick={() => handleStatusChange(index, status.id)}
-                                                className={`px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all border active:scale-95 ${response === status.id
-                                                    ? `${status.color.replace('border-', 'border-')} shadow-sm`
+                                                className={`px-3 py-3 rounded-xl text-sm font-black transition-all border break-keep active:scale-95 flex items-center justify-center text-center ${response === status.id
+                                                    ? `${status.color.replace('border-', 'border-')} shadow-md scale-[1.02] ring-2 ring-blue-100`
                                                     : 'bg-white text-slate-400 border-slate-100 hover:border-slate-200'
                                                     }`}
                                             >
@@ -455,8 +466,8 @@ export default function PrayerNote({
                                     </div>
                                 </div>
 
-                                <div className="space-y-1.5">
-                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider ml-1">메모</p>
+                                <div className="space-y-2">
+                                    <p className="text-sm md:text-base font-black text-slate-500 uppercase tracking-wider ml-1">메모</p>
                                     <div className="flex gap-2">
                                         <input
                                             type="text"
@@ -464,31 +475,31 @@ export default function PrayerNote({
                                             onChange={(e) => setTempComment(e.target.value)}
                                             onBlur={() => handleCommentSubmit(index)}
                                             onKeyDown={(e) => e.key === 'Enter' && handleCommentSubmit(index)}
-                                            placeholder="메모를 입력하세요"
-                                            className="flex-1 px-3 py-2 bg-white border border-slate-200 rounded-lg text-xs font-medium focus:border-blue-400 outline-none"
+                                            placeholder="여기에 메모를 입력하세요"
+                                            className="flex-1 px-4 py-3 bg-white border-2 border-slate-100 rounded-xl text-sm md:text-base font-bold focus:border-blue-400 outline-none transition-all"
                                         />
                                     </div>
                                 </div>
 
-                                <div className="pt-1 flex justify-between items-center">
+                                <div className="pt-2 flex justify-between items-center">
                                     {showArchived ? (
                                         <button
                                             onClick={() => handleRestore(index)}
-                                            className="text-[10px] font-bold text-blue-500 hover:text-blue-700 hover:underline px-1 py-1"
+                                            className="text-sm md:text-base font-black text-blue-600 hover:text-blue-800 hover:underline px-2 py-2"
                                         >
-                                            복원
+                                            🔄 다시 꺼내기
                                         </button>
                                     ) : (
                                         <button
                                             onClick={() => handleArchive(index)}
-                                            className="text-[10px] font-bold text-slate-300 hover:text-slate-500 hover:underline px-1 py-1"
+                                            className="text-sm md:text-base font-black text-slate-400 hover:text-slate-600 hover:underline px-2 py-2"
                                         >
-                                            보관
+                                            📦 보관함으로 이동
                                         </button>
                                     )}
                                     <button
                                         onClick={() => setExpandedIndex(null)}
-                                        className="px-3 py-1 bg-slate-800 text-white text-[10px] font-bold rounded-md hover:bg-slate-900"
+                                        className="px-5 py-2 bg-slate-800 text-white text-sm md:text-base font-black rounded-xl hover:bg-slate-900 transition-colors"
                                     >
                                         닫기
                                     </button>
@@ -496,29 +507,29 @@ export default function PrayerNote({
                             </>
                         ) : (
                             // Read-Only View
-                            <div className="space-y-2">
+                            <div className="space-y-3">
                                 {response && (
                                     <div className="flex items-center gap-2">
-                                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold border ${STATUS_OPTIONS.find(o => o.id === response)?.color}`}>
+                                        <span className={`px-3 py-1 rounded-lg text-sm md:text-base font-black border ${STATUS_OPTIONS.find(o => o.id === response)?.color}`}>
                                             {response}
                                         </span>
                                     </div>
                                 )}
                                 {comment && (
-                                    <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-100">
-                                        <p className="text-xs text-slate-600 font-medium">📝 {comment}</p>
+                                    <div className="bg-blue-50/50 p-4 rounded-xl border border-blue-100">
+                                        <p className="text-sm md:text-base text-slate-700 font-bold">📝 {comment}</p>
                                     </div>
                                 )}
-                                <div className="flex justify-between items-center mt-2">
+                                <div className="flex flex-col gap-3 mt-2">
                                     {/* Date in Expanded View */}
                                     {dates[index] && (
-                                        <span className="text-[10px] text-slate-300">
-                                            {dates[index]} ({getRelativeTime(dates[index])})
+                                        <span className="text-sm font-bold text-slate-400">
+                                            🕒 {dates[index]} ({getRelativeTime(dates[index])})
                                         </span>
                                     )}
                                     <button
                                         onClick={() => setExpandedIndex(null)}
-                                        className="px-3 py-1 bg-slate-100 text-slate-500 text-[10px] font-bold rounded-lg hover:bg-slate-200 ml-auto"
+                                        className="px-5 py-2 bg-slate-100 text-slate-600 text-sm md:text-base font-black rounded-xl hover:bg-slate-200 transition-colors w-full sm:w-auto ml-auto"
                                     >
                                         닫기
                                     </button>
@@ -554,6 +565,14 @@ export default function PrayerNote({
                 </div>
             )}
 
+            {/* v3.6.0: Guidance Text - Optimized for single line */}
+            <div className="bg-amber-50/50 border border-amber-100 rounded-2xl px-4 py-3 mb-6 overflow-hidden">
+                <p className="text-amber-700 font-black flex items-center gap-2 whitespace-nowrap tracking-tighter text-[13.5px] min-[380px]:text-sm sm:text-base md:text-lg">
+                    <span className="text-xl shrink-0">👉</span>
+                    기도제목을 누르면 응답을 표시하고, 수정할 수 있습니다.
+                </p>
+            </div>
+
             {visiblePrayers.length === 0 ? (
                 <div className="text-center py-20 space-y-4 animate-in fade-in zoom-in-95 duration-500">
                     <div className="text-5xl animate-bounce-subtle">
@@ -576,23 +595,23 @@ export default function PrayerNote({
 
             {/* Add New Prayer Input - Hide in View All mode */}
             {!metadata && (
-                <div className="mt-8 pt-6 border-t border-slate-100">
-                    <div className="flex gap-2 items-center bg-slate-50 p-2 rounded-2xl border border-slate-100 focus-within:border-blue-300 focus-within:ring-4 focus-within:ring-blue-50 transition-all">
-                        <span className="pl-3 text-lg">✨</span>
+                <div className="mt-8 pt-6 border-t border-slate-100 space-y-4">
+                    <div className="flex gap-3 items-center bg-slate-50 p-3 rounded-[2rem] border border-slate-200 focus-within:border-blue-400 focus-within:ring-4 focus-within:ring-blue-50 transition-all shadow-inner">
+                        <span className="pl-2 text-2xl">✨</span>
                         <input
                             type="text"
                             value={newPrayerText}
                             onChange={(e) => setNewPrayerText(e.target.value)}
                             onKeyDown={(e) => e.key === 'Enter' && handleAddSubmit()}
-                            placeholder="새로운 기도제목을 추가해보세요..."
-                            className="flex-1 bg-transparent border-none outline-none text-sm font-bold text-slate-700 placeholder:text-slate-400 py-2"
+                            placeholder="새로운 기도를 여기에 입력하세요..."
+                            className="flex-1 bg-transparent border-none outline-none text-base md:text-lg font-black text-slate-800 placeholder:text-slate-400 py-2"
                         />
                         <button
                             onClick={handleAddSubmit}
                             disabled={!newPrayerText.trim()}
-                            className="p-2 bg-blue-600 text-white rounded-xl disabled:bg-slate-200 disabled:text-slate-400 hover:bg-blue-700 transition-colors shadow-sm"
+                            className="p-3 bg-blue-600 text-white rounded-2xl disabled:bg-slate-200 disabled:text-slate-400 hover:bg-blue-700 transition-all shadow-lg active:scale-95"
                         >
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M12 4v16m8-8H4" /></svg>
+                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M12 4v16m8-8H4" /></svg>
                         </button>
                     </div>
                 </div>
