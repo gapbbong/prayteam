@@ -576,7 +576,7 @@ export default function Home() {
           )}
 
           <div className="flex flex-col items-end gap-1">
-            <span className="text-[10px] text-gray-500">3.7.0</span>
+            <span className="text-[10px] text-gray-500">3.7.1</span>
             <button
               onClick={logout}
               className="text-xs text-slate-400 hover:text-red-500 font-bold transition-colors px-2 py-1 bg-slate-50 rounded-lg hover:bg-slate-100 whitespace-nowrap"

@@ -67,7 +67,7 @@ export default function MemberList({ members = [], groupPrayers = {}, groupName 
                                 {memberData.dates && memberData.dates.length > 0 && (
                                     <div className="text-right mt-1">
                                         <span className="text-[10px] font-bold text-slate-400 bg-slate-50 px-2 py-0.5 rounded-md border border-slate-100">
-                                            최근 작성: {getRelativeTime(
+                                            {getRelativeTime(
                                                 [...memberData.dates]
                                                     .filter((_, i) => memberData.responses[i] !== '보관됨')
                                                     .reverse()[0]
