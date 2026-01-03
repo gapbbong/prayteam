@@ -48,10 +48,6 @@ export default function Home() {
   const [visibilities, setVisibilities] = useState([]);
   const [indices, setIndices] = useState([]); // [NEW] 실제 슬롯 번호 저장용
 
-  // Debug State
-  const [debugLogs, setDebugLogs] = useState([]);
-  const addLog = (msg) => setDebugLogs(prev => [...prev, `${new Date().toISOString().split('T')[1].slice(0, 8)}: ${msg}`]);
-
   // Modal State
   const [isAddGroupModalOpen, setIsAddGroupModalOpen] = useState(false);
   const [isNotificationModalOpen, setIsNotificationModalOpen] = useState(false);
@@ -679,46 +675,31 @@ export default function Home() {
   };
 
   const captureAsImage = async () => {
-    setDebugLogs([]); // Clear logs
-    addLog('Capture started');
-
-    // Initial check removal (we want to debug everything)
-    // const element = document.querySelector('[data-prayer-note]'); ...
-
+    // 캡처 모드 전환 대기
     try {
-      addLog('Importing html2canvas...');
+      setIsCapturing(true);
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // 최후의 수단: 특정 요소를 못 찾으면 body 전체를 캡처 시도
+      let captureElement = document.getElementById('prayer-note-container');
+      if (!captureElement) {
+        console.warn('Id not found, fallback to body');
+        captureElement = document.body;
+      }
+
+      // 동적으로 html2canvas import
       let html2canvas;
       try {
         html2canvas = (await import('html2canvas')).default;
-        addLog('html2canvas imported successfully');
       } catch (importError) {
-        addLog(`Error importing html2canvas: ${importError.message}`);
         showToast('html2canvas 로드 실패');
         return;
       }
 
-      setIsCapturing(true);
-      addLog('Set isCapturing(true), waiting 500ms...');
-
-      // 캡처 모드 전환 대기
-      await new Promise(resolve => setTimeout(resolve, 500));
-
-      // 요소 찾기
-      let captureElement = document.getElementById('prayer-note-container');
-      addLog(`First check for #prayer-note-container: ${captureElement ? 'Found' : 'Not Found'}`);
-
-      if (!captureElement) {
-        addLog('Falling back to document.body');
-        captureElement = document.body;
-      }
-
-      addLog(`Final capture target: ${captureElement.tagName} (ID: ${captureElement.id})`);
-
-      addLog('Starting html2canvas capture...');
       const canvas = await html2canvas(captureElement, {
         backgroundColor: isDarkMode ? '#000000' : '#ffffff',
         scale: 2,
-        logging: true,
+        logging: false, // 로깅 비활성화
         useCORS: true,
         allowTaint: true,
         ignoreElements: (node) => {
@@ -726,39 +707,30 @@ export default function Home() {
           return node.classList?.contains('fixed') || node.tagName === 'BUTTON';
         }
       });
-      addLog('html2canvas capture completed');
 
       // Canvas를 이미지로 변환
-      addLog('Converting canvas to blob...');
       canvas.toBlob((blob) => {
         if (!blob) {
-          addLog('Failed to create blob');
           showToast('이미지 생성 실패 (Blob)');
           return;
         }
-        addLog(`Blob created size: ${blob.size}`);
 
         // 파일 이름 생성
         const safeMemberName = currentMember || '전체';
         const fileName = `${currentGroup?.name || '기도팀'}_${safeMemberName}_${new Date().toISOString().split('T')[0]}.png`;
-        addLog(`Filename: ${fileName}`);
 
         // 다운로드 또는 공유
         if (navigator.share && navigator.canShare({ files: [new File([blob], fileName, { type: 'image/png' })] })) {
-          addLog('Trying navigator.share...');
           const file = new File([blob], fileName, { type: 'image/png' });
           navigator.share({
             files: [file],
             title: `${safeMemberName}님의 기도제목`,
             text: `${currentGroup?.name || '기도팀'} - ${safeMemberName}님의 기도제목`
-          }).then(() => {
-            addLog('Share successful');
           }).catch((err) => {
-            addLog(`Share failed: ${err.message}. Trying download...`);
+            console.error('Share failed', err);
             downloadImage(blob, fileName);
           });
         } else {
-          addLog('Share API unavailable. Using downloadImage...');
           downloadImage(blob, fileName);
         }
 
@@ -766,12 +738,10 @@ export default function Home() {
       }, 'image/png');
 
     } catch (error) {
-      addLog(`FATAL ERROR: ${error.message}`);
       console.error('Image capture failed:', error);
-      showToast('이미지 생성 중 치명적 오류');
+      showToast('이미지 생성 중 오류가 발생했습니다.');
     } finally {
       setIsCapturing(false);
-      addLog('isCapturing(false)');
     }
   };
 
@@ -946,19 +916,6 @@ export default function Home() {
         currentMember={currentMember}
         currentView={currentView}
       />
-
-      {/* Debug Log Area */}
-      {debugLogs.length > 0 && (
-        <div className="fixed bottom-0 left-0 right-0 bg-black/80 text-green-400 p-4 font-mono text-xs max-h-40 overflow-y-auto z-[100] border-t border-green-500">
-          <div className="flex justify-between items-center mb-2">
-            <h3 className="font-bold">Debug Logs</h3>
-            <button onClick={() => setDebugLogs([])} className="text-white bg-slate-700 px-2 py-1 rounded">Clear</button>
-          </div>
-          {debugLogs.map((log, i) => (
-            <div key={i}>{log}</div>
-          ))}
-        </div>
-      )}
     </main>
   );
 }
