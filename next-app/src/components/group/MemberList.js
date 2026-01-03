@@ -40,7 +40,7 @@ export default function MemberList({ members = [], groupPrayers = {}, groupName 
                                     <div className="w-10 h-10 rounded-full bg-white border border-slate-100 flex items-center justify-center font-black text-slate-400 shadow-sm">
                                         {member.slice(0, 1)}
                                     </div>
-                                    <span className="text-lg font-bold text-slate-800 group-hover:text-blue-600 transition-colors">{member}</span>
+                                    <span className="text-2xl font-black text-slate-800 group-hover:text-blue-600 transition-colors uppercase tracking-tight">{member}</span>
                                 </div>
                                 <svg className="w-5 h-5 text-slate-300 group-hover:text-blue-600 group-hover:translate-x-1 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M9 5l7 7-7 7" />
@@ -51,10 +51,10 @@ export default function MemberList({ members = [], groupPrayers = {}, groupName 
                                 {activePrayers.length > 0 ? (
                                     activePrayers.map((prayer, idx) => (
                                         <div key={idx} className="flex gap-2 items-start">
-                                            <span className="text-blue-600 font-black text-sm mt-0.5 shrink-0 tabular-nums">
+                                            <span className="text-blue-600 font-black text-lg mt-1 shrink-0 tabular-nums">
                                                 {idx + 1}.
                                             </span>
-                                            <p className="text-black text-base leading-relaxed font-bold">{prayer}</p>
+                                            <p className="text-black text-xl leading-relaxed font-black break-keep">{prayer}</p>
                                         </div>
                                     ))
                                 ) : (

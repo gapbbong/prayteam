@@ -547,19 +547,21 @@ export default function PrayerNote({
             {/* Header - Only Show if NOT in View All Mode */}
             {!metadata && (
                 <div className="mb-6">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <h2 className="text-4xl font-black text-slate-800 tracking-tight">🙏 {memberName} 기도 노트</h2>
-                            <p className="text-slate-400 text-xs font-bold mt-1 uppercase tracking-widest">Prayer Journal</p>
+                    <div className="flex items-center justify-between gap-4">
+                        <div className="flex items-center gap-2 overflow-hidden">
+                            <h2 className="text-2xl sm:text-3xl md:text-4xl font-black text-slate-800 tracking-tight whitespace-nowrap overflow-hidden text-ellipsis">
+                                🙏 {memberName}
+                            </h2>
+                            <span className="text-xl sm:text-2xl font-black text-slate-400 whitespace-nowrap shrink-0">기도 노트</span>
                         </div>
                         <button
                             onClick={() => setShowArchived(!showArchived)}
-                            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border-2 ${showArchived
-                                ? 'bg-slate-600 text-white border-slate-600'
-                                : 'bg-white text-slate-500 border-slate-200 hover:border-slate-300'
+                            className={`px-4 py-2 rounded-2xl text-sm font-black transition-all border-2 shadow-sm whitespace-nowrap shrink-0 ${showArchived
+                                ? 'bg-slate-700 text-white border-slate-700'
+                                : 'bg-white text-slate-600 border-slate-200 hover:border-blue-300'
                                 }`}
                         >
-                            {showArchived ? '📝 활성 보기' : '📦 보관함 보기'}
+                            {showArchived ? '📝 활성' : '📦 보관함'}
                         </button>
                     </div>
                 </div>
