@@ -72,14 +72,14 @@ export default function GroupList({ groups, onSelectGroup, onAddGroup, onViewAll
                                         <span className="text-2xl">{icon}</span>
                                     </div>
 
-                                    {/* Text content stacked vertically - Centered */}
-                                    <div className="flex-1 flex flex-col justify-center items-center gap-2 pt-0.5">
-                                        <h3 className="text-2xl font-black text-white drop-shadow-md truncate w-full text-center">
+                                    {/* Text content stacked vertically - Back to Start alignment */}
+                                    <div className="flex-1 flex flex-col justify-start items-start gap-1 pb-1">
+                                        <h3 className="text-2xl font-black text-white drop-shadow-md truncate w-full">
                                             {group.name}
                                         </h3>
 
-                                        {/* Member Count - Centered */}
-                                        <div className="inline-flex items-center gap-1.5 bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full w-fit">
+                                        {/* Member Count - Aligned to Start */}
+                                        <div className="inline-flex items-center gap-1.5 bg-white/20 backdrop-blur-sm px-2.5 py-0.5 rounded-full w-fit">
                                             <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                                             </svg>
@@ -100,12 +100,12 @@ export default function GroupList({ groups, onSelectGroup, onAddGroup, onViewAll
                     onClick={onAddGroup}
                     className="group relative w-full text-left p-3 bg-white/50 rounded-[2rem] border-2 border-dashed border-slate-300 hover:border-blue-400 hover:shadow-lg transition-all active:scale-95 flex items-center gap-3"
                 >
-                    <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform shadow-sm flex-shrink-0">
-                        <svg className="w-8 h-8 text-slate-400 group-hover:text-blue-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform shadow-sm flex-shrink-0">
+                        <svg className="w-7 h-7 text-slate-400 group-hover:text-blue-500 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4" />
                         </svg>
                     </div>
-                    <span className="text-xl sm:text-2xl font-bold text-slate-500 group-hover:text-blue-600 transition-colors whitespace-nowrap tracking-tighter">새 그룹 만들기</span>
+                    <span className="text-lg sm:text-xl font-bold text-slate-500 group-hover:text-blue-600 transition-colors whitespace-nowrap tracking-tighter">새 그룹 만들기</span>
                 </button>
 
                 {/* View All Prayers Button */}
@@ -118,13 +118,13 @@ export default function GroupList({ groups, onSelectGroup, onAddGroup, onViewAll
                         <div className="absolute inset-0 bg-gradient-to-br from-indigo-500 via-purple-600 to-violet-700 opacity-95 group-hover:opacity-100 transition-opacity" />
 
                         {/* Content */}
-                        <div className="relative p-3 flex items-center gap-4">
-                            <div className="w-14 h-14 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform shadow-sm flex-shrink-0">
-                                <span className="text-3xl">📋</span>
+                        <div className="relative p-3 flex items-center gap-3">
+                            <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform shadow-sm flex-shrink-0">
+                                <span className="text-2xl">📋</span>
                             </div>
                             <div className="flex flex-col overflow-hidden">
-                                <span className="text-xl sm:text-2xl font-black text-white drop-shadow-sm whitespace-nowrap tracking-tighter">전체 기도제목</span>
-                                <span className="text-xs font-bold text-white/70">모든 그룹 기도</span>
+                                <span className="text-lg sm:text-xl font-black text-white drop-shadow-sm whitespace-nowrap tracking-tighter">전체 기도제목</span>
+                                <span className="text-[10px] sm:text-xs font-bold text-white/70">모든 그룹 기도</span>
                             </div>
                         </div>
                     </button>
