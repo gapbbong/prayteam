@@ -677,8 +677,8 @@ export default function Home() {
   const captureAsImage = async () => {
     // 캡처 모드 전환 대기
     try {
-      setIsCapturing(true);
-      await new Promise(resolve => setTimeout(resolve, 500));
+      setIsCapturing(true);      // 캡처 모드 전환 대기 (User Activation 유지를 위해 시간 단축)
+      await new Promise(resolve => setTimeout(resolve, 100));
 
       // 최후의 수단: 특정 요소를 못 찾으면 body 전체를 캡처 시도
       let captureElement = document.getElementById('prayer-note-container');
@@ -708,34 +708,43 @@ export default function Home() {
         }
       });
 
-      // Canvas를 이미지로 변환
-      canvas.toBlob((blob) => {
-        if (!blob) {
-          showToast('이미지 생성 실패 (Blob)');
-          return;
-        }
+      // Canvas를 이미지로 변환 및 처리
+      try {
+        const blob = await new Promise((resolve, reject) => {
+          canvas.toBlob((b) => {
+            if (b) resolve(b);
+            else reject(new Error('Canvas to Blob conversion failed'));
+          }, 'image/png');
+        });
 
         // 파일 이름 생성
         const safeMemberName = currentMember || '전체';
         const fileName = `${currentGroup?.name || '기도팀'}_${safeMemberName}_${new Date().toISOString().split('T')[0]}.png`;
 
-        // 다운로드 또는 공유
+        // 1. 공유 API 시도
         if (navigator.share && navigator.canShare({ files: [new File([blob], fileName, { type: 'image/png' })] })) {
-          const file = new File([blob], fileName, { type: 'image/png' });
-          navigator.share({
-            files: [file],
-            title: `${safeMemberName}님의 기도제목`,
-            text: `${currentGroup?.name || '기도팀'} - ${safeMemberName}님의 기도제목`
-          }).catch((err) => {
-            console.error('Share failed', err);
-            copyToClipboard(blob, fileName);
-          });
-        } else {
-          copyToClipboard(blob, fileName);
+          try {
+            const file = new File([blob], fileName, { type: 'image/png' });
+            await navigator.share({
+              files: [file],
+              title: `${safeMemberName}님의 기도제목`,
+              text: `${currentGroup?.name || '기도팀'} - ${safeMemberName}님의 기도제목`
+            });
+            showToast('공유가 완료되었습니다!', 'success');
+          } catch (shareError) {
+            console.warn('Share canceled or failed, trying clipboard...', shareError);
+            await copyToClipboard(blob, fileName);
+          }
+        }
+        // 2. 공유 API 불가 시 클립보드 복사 시도
+        else {
+          await copyToClipboard(blob, fileName);
         }
 
-        showToast('이미지가 생성되었습니다!');
-      }, 'image/png');
+      } catch (blobError) {
+        console.error('Blob creation error:', blobError);
+        showToast('이미지 처리 중 오류가 발생했습니다.');
+      }
 
     } catch (error) {
       console.error('Image capture failed:', error);
@@ -747,17 +756,19 @@ export default function Home() {
 
   const copyToClipboard = async (blob, fileName) => {
     try {
-      if (typeof ClipboardItem !== 'undefined') {
+      // Clipboard API Check
+      if (typeof ClipboardItem !== 'undefined' && navigator.clipboard && navigator.clipboard.write) {
         await navigator.clipboard.write([
           new ClipboardItem({ 'image/png': blob })
         ]);
-        showToast('📋 이미지가 복사되었습니다! 카톡에 붙여넣기 하세요.', 'success');
+        showToast('📋 이미지가 복사되었습니다! 채팅방에 붙여넣기(Ctrl+V) 하세요.', 'success');
       } else {
-        throw new Error('ClipboardItem not supported');
+        throw new Error('Clipboard API not supported');
       }
     } catch (err) {
-      console.error('Clipboard copy failed', err);
-      showToast('이미지 다운로드를 시작합니다.');
+      console.error('Clipboard copy failed:', err);
+      // 복사 실패 시 다운로드로 fallback
+      showToast('이미지를 다운로드합니다.');
       downloadImage(blob, fileName);
     }
   };
