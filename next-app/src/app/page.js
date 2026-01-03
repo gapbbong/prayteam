@@ -63,11 +63,12 @@ export default function Home() {
   const logVisit = useCallback(async (pageName, extra = {}) => {
     try {
       const browserInfo = typeof window !== 'undefined' ? window.navigator.userAgent : 'Unknown';
+      // Use explicit IDs from extra or current state purely for logging
       await gasClient.addLog({
         page: pageName,
         adminId: user?.id,
-        groupId: extra.groupId || currentGroup?.groupId,
-        member: extra.member || currentMember,
+        groupId: extra.groupId || '',
+        member: extra.member || '',
         from: document.referrer || '',
         device: 'Web',
         browser: browserInfo
@@ -75,11 +76,12 @@ export default function Home() {
     } catch (e) {
       console.warn('Logging failed', e);
     }
-  }, [user, currentGroup, currentMember]);
+  }, [user?.id]); // Only depend on User ID change
   /* 📌 주요 핸들러 함수 (초기화 순서 보장을 위해 최상단 배치)             */
   /* ========================================================================= */
 
   const loadGroups = useCallback(async () => {
+    if (!user?.id) return;
     setIsLoading(true);
     try {
       const res = await gasClient.getGroups(user.adminId || user.id);
@@ -90,16 +92,12 @@ export default function Home() {
         members: g.구성원목록 || g.members || []
       }));
       setGroups(formattedGroups);
-      if (!window.history.state) {
-        window.history.replaceState({ view: 'groups' }, '', '#groups');
-      }
-      setCurrentView('groups');
     } catch (error) {
       console.error('Failed to load groups:', error);
     } finally {
       setIsLoading(false);
     }
-  }, [user, authLoading]);
+  }, [user?.id, user?.adminId]);
 
   const handleSelectGroup = useCallback(async (group) => {
     // 그룹명을 먼저 설정하여 로딩 중에도 헤더에 즉시 표시
@@ -290,9 +288,16 @@ export default function Home() {
   useEffect(() => {
     if (user && !authLoading) {
       loadGroups();
+      // Only log once per session/initial load at this level
+    }
+  }, [user?.id, authLoading, loadGroups]);
+
+  // Initial Visit Log
+  useEffect(() => {
+    if (user && groups.length > 0) {
       logVisit('group_list');
     }
-  }, [user, authLoading, logVisit]);
+  }, [user?.id, groups.length > 0]); // Log visit only when user and groups are ready, without depending on logVisit identity
 
   // Initial History State Check
   useEffect(() => {
@@ -571,7 +576,7 @@ export default function Home() {
           )}
 
           <div className="flex flex-col items-end gap-1">
-            <span className="text-[10px] text-gray-500">v0.5.7</span>
+            <span className="text-[10px] text-gray-500">v0.5.8</span>
             <button
               onClick={logout}
               className="text-xs text-slate-400 hover:text-red-500 font-bold transition-colors px-2 py-1 bg-slate-50 rounded-lg hover:bg-slate-100 whitespace-nowrap"
