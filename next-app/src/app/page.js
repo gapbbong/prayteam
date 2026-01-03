@@ -247,6 +247,17 @@ export default function Home() {
     window.history.pushState({ view: 'prayers', member, group: currentGroup }, '', '#prayers');
   }, [currentGroup, logVisit]);
 
+  // ✅ New Handler: Share current group link
+  const handleShareGroup = useCallback(() => {
+    if (!currentGroup) return;
+    const url = `${window.location.origin}/#members?groupId=${currentGroup.groupId}`;
+    navigator.clipboard.writeText(url).then(() => {
+      alert('그룹 링크가 복사되었습니다! 단톡방에 공유해보세요. 😊');
+    }).catch(err => {
+      console.error('Failed to copy', err);
+    });
+  }, [currentGroup]);
+
   const handleBack = useCallback(() => {
     window.history.back();
   }, []);
@@ -549,7 +560,20 @@ export default function Home() {
         </h1>
 
         {/* Right: User Info & Logout */}
-        <div className="flex items-center gap-2 w-24 justify-end">
+        <div className="flex items-center gap-1.5 w-24 justify-end">
+          {currentGroup && (currentView === 'members' || currentView === 'prayers') && (
+            <button
+              onClick={handleShareGroup}
+              className="p-1.5 text-slate-400 hover:text-blue-600 transition-colors bg-white rounded-lg shadow-sm border border-slate-100"
+              title="그룹 공유"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M10 14H5.236a2 2 0 01-1.789-2.894l3.5-7A2 2 0 018.736 3h6.528a2 2 0 011.789 1.106l3.5 7A2 2 0 0118.764 14H14v4a2 2 0 01-2 2h-2v-4z M10 14V11a2 2 0 012-2h0a2 2 0 012 2v3" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 3v8m0 0l-3-3m3 3l3-3" />
+              </svg>
+            </button>
+          )}
+
           <span className="text-xs font-bold text-slate-500 whitespace-nowrap hidden sm:inline">{user.name}님</span>
 
           {(currentView === 'members' || currentView === 'prayers') && (
@@ -576,7 +600,7 @@ export default function Home() {
           )}
 
           <div className="flex flex-col items-end gap-1">
-            <span className="text-[10px] text-gray-500">3.7.1</span>
+            <span className="text-[10px] text-gray-500">3.7.2</span>
             <button
               onClick={logout}
               className="text-xs text-slate-400 hover:text-red-500 font-bold transition-colors px-2 py-1 bg-slate-50 rounded-lg hover:bg-slate-100 whitespace-nowrap"
