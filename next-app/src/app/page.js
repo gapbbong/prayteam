@@ -522,7 +522,7 @@ export default function Home() {
   return (
     <main className="container mx-auto px-4 py-8 min-h-screen">
       {/* Global Header */}
-      <div className="relative flex items-center justify-between mb-8 px-1 h-10">
+      <div className="relative flex items-center justify-between mb-0.5 px-1 h-10">
         {/* Left: Back Button or Version */}
         <div className="w-24 flex justify-start items-center">
           {currentView !== 'groups' ? (
@@ -576,7 +576,7 @@ export default function Home() {
           )}
 
           <div className="flex flex-col items-end gap-1">
-            <span className="text-[10px] text-gray-500">3.6.5</span>
+            <span className="text-[10px] text-gray-500">3.7.0</span>
             <button
               onClick={logout}
               className="text-xs text-slate-400 hover:text-red-500 font-bold transition-colors px-2 py-1 bg-slate-50 rounded-lg hover:bg-slate-100 whitespace-nowrap"

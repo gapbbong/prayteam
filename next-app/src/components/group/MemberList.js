@@ -15,10 +15,10 @@ export default function MemberList({ members = [], groupPrayers = {}, groupName 
     }
 
     return (
-        <div className="space-y-6 animate-in fade-in slide-in-from-right-8 duration-500">
-            <div className="bg-blue-50/50 border border-blue-100 rounded-2xl px-5 py-3 mb-2 animate-pulse">
-                <p className="text-blue-600 font-black text-sm md:text-base flex items-center gap-2">
-                    <span className="text-xl">💡</span>
+        <div className="space-y-0.5 animate-in fade-in slide-in-from-right-8 duration-500">
+            <div className="bg-blue-50/50 border border-blue-100 rounded-xl px-4 py-0.5 animate-pulse">
+                <p className="text-blue-600 font-bold text-xs md:text-sm flex items-center gap-1.5">
+                    <span className="text-lg">💡</span>
                     기도제목을 터치해 보세요, 기도 노트가 열립니다.
                 </p>
             </div>
@@ -62,6 +62,19 @@ export default function MemberList({ members = [], groupPrayers = {}, groupName 
                                         공유된 기도제목이 없습니다.
                                     </p>
                                 )}
+
+                                {/* Latest Update Time */}
+                                {memberData.dates && memberData.dates.length > 0 && (
+                                    <div className="text-right mt-1">
+                                        <span className="text-[10px] font-bold text-slate-400 bg-slate-50 px-2 py-0.5 rounded-md border border-slate-100">
+                                            최근 작성: {getRelativeTime(
+                                                [...memberData.dates]
+                                                    .filter((_, i) => memberData.responses[i] !== '보관됨')
+                                                    .reverse()[0]
+                                            )}
+                                        </span>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     );
@@ -69,4 +82,38 @@ export default function MemberList({ members = [], groupPrayers = {}, groupName 
             </div>
         </div>
     );
+}
+
+// Relative Time Helper
+function getRelativeTime(dateStr) {
+    if (!dateStr) return '시간 정보 없음';
+    try {
+        const parts = dateStr.match(/(\d+)/g);
+        if (!parts || parts.length < 3) return dateStr;
+
+        const date = new Date(
+            parseInt(parts[0]),
+            parseInt(parts[1]) - 1,
+            parseInt(parts[2]),
+            parseInt(parts[3] || 0),
+            parseInt(parts[4] || 0),
+            parseInt(parts[5] || 0)
+        );
+        const now = new Date();
+        const diffInSeconds = Math.floor((now - date) / 1000);
+
+        if (diffInSeconds < 60) return '방금 전';
+        const diffInMinutes = Math.floor(diffInSeconds / 60);
+        if (diffInMinutes < 60) return `${diffInMinutes}분 전`;
+        const diffInHours = Math.floor(diffInMinutes / 60);
+        if (diffInHours < 24) return `${diffInHours}시간 전`;
+        const diffInDays = Math.floor(diffInHours / 24);
+        if (diffInDays < 30) return `${diffInDays}일 전`;
+        const diffInMonths = Math.floor(diffInDays / 30);
+        if (diffInMonths < 12) return `${diffInMonths}개월 전`;
+        const diffInYears = Math.floor(diffInMonths / 12);
+        return `${diffInYears}년 전`;
+    } catch (e) {
+        return dateStr;
+    }
 }
