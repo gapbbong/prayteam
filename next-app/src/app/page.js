@@ -568,8 +568,7 @@ export default function Home() {
               title="그룹 공유"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M10 14H5.236a2 2 0 01-1.789-2.894l3.5-7A2 2 0 018.736 3h6.528a2 2 0 011.789 1.106l3.5 7A2 2 0 0118.764 14H14v4a2 2 0 01-2 2h-2v-4z M10 14V11a2 2 0 012-2h0a2 2 0 012 2v3" />
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 3v8m0 0l-3-3m3 3l3-3" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
               </svg>
             </button>
           )}
@@ -600,7 +599,7 @@ export default function Home() {
           )}
 
           <div className="flex flex-col items-end gap-1">
-            <span className="text-[10px] text-gray-500">3.7.2</span>
+            <span className="text-[10px] text-gray-500">3.7.3</span>
             <button
               onClick={logout}
               className="text-xs text-slate-400 hover:text-red-500 font-bold transition-colors px-2 py-1 bg-slate-50 rounded-lg hover:bg-slate-100 whitespace-nowrap"
