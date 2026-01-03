@@ -2,6 +2,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import ErrorOverlay from "@/components/ErrorOverlay";
 import { AuthProvider } from "@/context/AuthContext";
+import { ToastProvider } from "@/context/ToastContext";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -16,11 +17,13 @@ import Script from "next/script";
 export default function RootLayout({ children }) {
   return (
     <html lang="ko">
-      <body className={`${inter.className} bg-slate-50 min-h-screen text-slate-900`}>
+      <body className={`${inter.className} min-h-screen`}>
         <AuthProvider>
-          {children}
-          <ErrorOverlay />
-          <ServiceWorkerRegister />
+          <ToastProvider>
+            {children}
+            <ErrorOverlay />
+            <ServiceWorkerRegister />
+          </ToastProvider>
         </AuthProvider>
         <Script id="clarity-script" strategy="afterInteractive">
           {`

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useToast } from '@/context/ToastContext';
 
 export default function AddGroupModal({ isOpen, onClose, onSubmit }) {
     const [groupName, setGroupName] = useState('');
@@ -26,8 +27,9 @@ export default function AddGroupModal({ isOpen, onClose, onSubmit }) {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        const { showToast } = useToast();
         if (!groupName.trim()) {
-            alert('그룹 이름을 입력해주세요.');
+            showToast('그룹 이름을 입력해주세요.', 'error');
             return;
         }
 

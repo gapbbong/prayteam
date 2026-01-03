@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import { gasClient } from '@/lib/gasClient';
 import { useNotifications } from '@/hooks/useNotifications';
+import { useToast } from '@/context/ToastContext';
 import PrayerNote from '@/components/prayer/PrayerNote';
 import LoadingDots from '@/components/LoadingDots';
 import LoginForm from '@/components/LoginForm';
@@ -11,10 +12,13 @@ import GroupList from '@/components/group/GroupList';
 import MemberList from '@/components/group/MemberList';
 import AddGroupModal from '@/components/group/AddGroupModal';
 import NotificationSettingsModal from '@/components/NotificationSettingsModal';
+import Sidebar from '@/components/Sidebar';
+// import html2canvas from 'html2canvas'; // 동적 import로 변경
 
 export default function Home() {
   const { user, loading: authLoading, logout } = useAuth();
   const { permission, requestPermission } = useNotifications();
+  const { showToast } = useToast();
 
   // State Refs for Event Listeners (avoids re-binding listeners)
   const groupPrayersRef = useRef({});
@@ -24,7 +28,13 @@ export default function Home() {
   const [currentView, setCurrentView] = useState('groups');
 
   // Data State
-  const [isLoading, setIsLoading] = useState(false);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const [isLoading, setIsLoading] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return window.location.hash.includes('groupId=');
+    }
+    return false;
+  });
   const [groups, setGroups] = useState([]);
   const [currentGroup, setCurrentGroup] = useState(null);
   const [currentMember, setCurrentMember] = useState(null);
@@ -38,10 +48,39 @@ export default function Home() {
   const [visibilities, setVisibilities] = useState([]);
   const [indices, setIndices] = useState([]); // [NEW] 실제 슬롯 번호 저장용
 
+  // Debug State
+  const [debugLogs, setDebugLogs] = useState([]);
+  const addLog = (msg) => setDebugLogs(prev => [...prev, `${new Date().toISOString().split('T')[1].slice(0, 8)}: ${msg}`]);
+
   // Modal State
   const [isAddGroupModalOpen, setIsAddGroupModalOpen] = useState(false);
   const [isNotificationModalOpen, setIsNotificationModalOpen] = useState(false);
   const [isCurrentGroupNotiEnabled, setIsCurrentGroupNotiEnabled] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('prayteam_theme') === 'dark';
+    }
+    return false;
+  });
+  const [isCapturing, setIsCapturing] = useState(false);
+
+  // [추가] 다크모드 초기화 로직 (새로고침 시 적용 보장)
+  useEffect(() => {
+    if (isDarkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [isDarkMode]);
+
+  // v3.7.6 Guest Mode State (URL 파라미터 기반 초기화로 깜빡임 방지)
+  const [isGuestMode, setIsGuestMode] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return window.location.hash.includes('groupId=');
+    }
+    return false;
+  });
 
   // Loading Progress: e.g., "1/15"
   const [loadingProgress, setLoadingProgress] = useState('');
@@ -145,7 +184,7 @@ export default function Home() {
 
   const handleViewAllPrayers = useCallback(async () => {
     if (!groups || groups.length === 0) {
-      alert('참여 중인 그룹이 없습니다.');
+      showToast('참여 중인 그룹이 없습니다.', 'info');
       return;
     }
     try {
@@ -220,13 +259,124 @@ export default function Home() {
       window.history.pushState({ view: 'all_prayers' }, '', '#all_prayers');
     } catch (error) {
       console.error('Failed to fetch all prayers:', error);
-      alert('전체 기도제목을 불러오는데 실패했습니다.');
+      showToast('전체 기도제목을 불러오는데 실패했습니다.', 'error');
     } finally {
       setIsLoading(false);
       setLoadingProgress('');
       logVisit('view_all_prayers');
     }
-  }, [groups]);
+  }, [groups, showToast]);
+  const handleViewAllPrayersForGroup = useCallback(async (targetGroup) => {
+    if (!targetGroup) return;
+    try {
+      setIsLoading(true);
+      setLoadingProgress('');
+      const groupGradient = 'from-blue-500 to-purple-600';
+      const bulkData = await gasClient.getPrayersAllGroups(targetGroup.groupId);
+
+      if (bulkData && bulkData.error) throw new Error(bulkData.error);
+      if (!bulkData || !Array.isArray(bulkData)) throw new Error('데이터 형식이 올바르지 않습니다.');
+
+      const dataLookup = {};
+      bulkData.forEach(item => {
+        const gid = item.그룹ID;
+        if (gid) {
+          if (!dataLookup[gid]) dataLookup[gid] = {};
+          dataLookup[gid][item.멤버이름] = item;
+        }
+      });
+
+      const prayersList = [];
+      const responsesList = [];
+      const commentsList = [];
+      const datesList = [];
+      const visibilitiesList = [];
+      const metadataList = [];
+
+      if (targetGroup.members) {
+        targetGroup.members.forEach(member => {
+          const data = dataLookup[targetGroup.groupId] ? dataLookup[targetGroup.groupId][member] : null;
+          if (data && data.prayers && data.prayers.length > 0) {
+            data.prayers.forEach((prayer, pIdx) => {
+              if (data.visibilities && data.visibilities[pIdx] === 'Hidden') return;
+              prayersList.push(prayer);
+              responsesList.push(data.responses ? data.responses[pIdx] : '');
+              commentsList.push(data.comments ? data.comments[pIdx] : '');
+              datesList.push(data.dates ? data.dates[pIdx] : '');
+              visibilitiesList.push(data.visibilities ? data.visibilities[pIdx] : 'Show');
+              metadataList.push({
+                groupName: targetGroup.name,
+                memberName: member,
+                gradientClass: groupGradient,
+                updatedAt: data.작성시간
+              });
+            });
+          }
+        });
+      }
+
+      setViewAllData({
+        prayers: prayersList, responses: responsesList,
+        comments: commentsList, dates: datesList,
+        visibilities: visibilitiesList, metadata: metadataList
+      });
+      setCurrentView('all_prayers');
+    } catch (error) {
+      console.error('Failed to fetch group prayers:', error);
+      showToast('기도제목을 불러오는데 실패했습니다.', 'error');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [showToast]);
+
+  /* 📌 초기화 로직 (URL 파라미터 체크 및 게스트 모드)               */
+  /* ========================================================================= */
+  useEffect(() => {
+    const initView = async () => {
+      const hash = window.location.hash;
+      if (!hash) return;
+
+      const params = new URLSearchParams(hash.split('?')[1]);
+      const groupId = params.get('groupId');
+
+      if (groupId) {
+        // [Guest Mode Logic]
+        if (!user) {
+          setIsLoading(true);
+          try {
+            const res = await gasClient.getGroupById(groupId);
+            if (res.group) {
+              const formattedGroup = {
+                groupId: res.group.그룹ID,
+                name: res.group.그룹명,
+                members: res.group.구성원목록
+              };
+              setIsGuestMode(true);
+              setCurrentGroup(formattedGroup);
+
+              // 즉시 데이터 로드 호출
+              handleViewAllPrayersForGroup(formattedGroup);
+
+              logVisit('guest_view', { groupId });
+            }
+          } catch (e) {
+            console.error('Guest access failed', e);
+          } finally {
+            setIsLoading(false);
+            setIsInitialLoad(false);
+          }
+        } else {
+          setIsInitialLoad(false);
+        }
+      } else {
+        setIsInitialLoad(false);
+      }
+    };
+
+    if (!authLoading) {
+      initView();
+    }
+  }, [user, authLoading, logVisit]);
 
   const handleSelectMember = useCallback((member) => {
     setCurrentMember(member);
@@ -252,19 +402,33 @@ export default function Home() {
     if (!currentGroup) return;
     const url = `${window.location.origin}/#members?groupId=${currentGroup.groupId}`;
     navigator.clipboard.writeText(url).then(() => {
-      alert('그룹 링크가 복사되었습니다! 단톡방에 공유해보세요. 😊');
+      showToast('✨ 그룹 링크를 복사했습니다. 소중한 분들께 전해보세요!', 'success');
     }).catch(err => {
       console.error('Failed to copy', err);
+      showToast('링크 복사에 실패했습니다.', 'error');
     });
-  }, [currentGroup]);
+  }, [currentGroup, showToast]);
 
   const handleBack = useCallback(() => {
     window.history.back();
   }, []);
 
+  const toggleDarkMode = useCallback(() => {
+    setIsDarkMode(prev => {
+      const newMode = !prev;
+      localStorage.setItem('prayteam_theme', newMode ? 'dark' : 'light');
+      if (newMode) {
+        document.documentElement.classList.add('dark');
+      } else {
+        document.documentElement.classList.remove('dark');
+      }
+      return newMode;
+    });
+  }, []);
+
   const handleAddGroup = async (groupName, memberList) => {
     if (!groupName || !groupName.trim()) {
-      alert('그룹 이름을 입력해주세요.');
+      showToast('그룹 이름을 입력해주세요.', 'error');
       return;
     }
     try {
@@ -277,9 +441,9 @@ export default function Home() {
         }
       }
       await loadGroups();
-      alert(`"${groupName}" 그룹이 성공적으로 만들어졌습니다!`);
+      showToast(`"${groupName}" 그룹이 성공적으로 만들어졌습니다!`, 'success');
     } catch (error) {
-      alert(error.message || '그룹 추가에 실패했습니다.');
+      showToast(error.message || '그룹 추가에 실패했습니다.', 'error');
       throw error;
     } finally {
       setIsLoading(false);
@@ -514,9 +678,117 @@ export default function Home() {
     }
   };
 
+  const captureAsImage = async () => {
+    setDebugLogs([]); // Clear logs
+    addLog('Capture started');
+
+    // Initial check removal (we want to debug everything)
+    // const element = document.querySelector('[data-prayer-note]'); ...
+
+    try {
+      addLog('Importing html2canvas...');
+      let html2canvas;
+      try {
+        html2canvas = (await import('html2canvas')).default;
+        addLog('html2canvas imported successfully');
+      } catch (importError) {
+        addLog(`Error importing html2canvas: ${importError.message}`);
+        showToast('html2canvas 로드 실패');
+        return;
+      }
+
+      setIsCapturing(true);
+      addLog('Set isCapturing(true), waiting 500ms...');
+
+      // 캡처 모드 전환 대기
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // 요소 찾기
+      let captureElement = document.getElementById('prayer-note-container');
+      addLog(`First check for #prayer-note-container: ${captureElement ? 'Found' : 'Not Found'}`);
+
+      if (!captureElement) {
+        addLog('Falling back to document.body');
+        captureElement = document.body;
+      }
+
+      addLog(`Final capture target: ${captureElement.tagName} (ID: ${captureElement.id})`);
+
+      addLog('Starting html2canvas capture...');
+      const canvas = await html2canvas(captureElement, {
+        backgroundColor: isDarkMode ? '#000000' : '#ffffff',
+        scale: 2,
+        logging: true,
+        useCORS: true,
+        allowTaint: true,
+        ignoreElements: (node) => {
+          // 사이드바, 토스트, 버튼 등 불필요한 요소 제외 시도 (클래스나 태그로)
+          return node.classList?.contains('fixed') || node.tagName === 'BUTTON';
+        }
+      });
+      addLog('html2canvas capture completed');
+
+      // Canvas를 이미지로 변환
+      addLog('Converting canvas to blob...');
+      canvas.toBlob((blob) => {
+        if (!blob) {
+          addLog('Failed to create blob');
+          showToast('이미지 생성 실패 (Blob)');
+          return;
+        }
+        addLog(`Blob created size: ${blob.size}`);
+
+        // 파일 이름 생성
+        const safeMemberName = currentMember || '전체';
+        const fileName = `${currentGroup?.name || '기도팀'}_${safeMemberName}_${new Date().toISOString().split('T')[0]}.png`;
+        addLog(`Filename: ${fileName}`);
+
+        // 다운로드 또는 공유
+        if (navigator.share && navigator.canShare({ files: [new File([blob], fileName, { type: 'image/png' })] })) {
+          addLog('Trying navigator.share...');
+          const file = new File([blob], fileName, { type: 'image/png' });
+          navigator.share({
+            files: [file],
+            title: `${safeMemberName}님의 기도제목`,
+            text: `${currentGroup?.name || '기도팀'} - ${safeMemberName}님의 기도제목`
+          }).then(() => {
+            addLog('Share successful');
+          }).catch((err) => {
+            addLog(`Share failed: ${err.message}. Trying download...`);
+            downloadImage(blob, fileName);
+          });
+        } else {
+          addLog('Share API unavailable. Using downloadImage...');
+          downloadImage(blob, fileName);
+        }
+
+        showToast('이미지가 생성되었습니다!');
+      }, 'image/png');
+
+    } catch (error) {
+      addLog(`FATAL ERROR: ${error.message}`);
+      console.error('Image capture failed:', error);
+      showToast('이미지 생성 중 치명적 오류');
+    } finally {
+      setIsCapturing(false);
+      addLog('isCapturing(false)');
+    }
+  };
+
+  const downloadImage = (blob, fileName) => {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
   if (authLoading) return <div className="min-h-screen flex items-center justify-center"><LoadingDots label="자동 로그인 중입니다..." /></div>;
 
-  if (!user) {
+  if (!user && !isGuestMode) {
     return (
       <main className="container mx-auto px-4 py-12 min-h-screen flex flex-col items-center">
         <header className="text-center mb-12 space-y-2">
@@ -531,84 +803,50 @@ export default function Home() {
   }
 
   return (
-    <main className="container mx-auto px-4 py-8 min-h-screen">
+    <main className="container mx-auto px-4 py-8 min-h-screen bg-transparent dark:bg-black">
       {/* Global Header */}
       <div className="relative flex items-center justify-between mb-0.5 px-1 h-10">
-        {/* Left: Back Button or Version */}
-        <div className="w-24 flex justify-start items-center">
-          {currentView !== 'groups' ? (
+        {/* Left: Back Button */}
+        <div className="w-10 flex justify-start">
+          {currentView !== 'groups' && (
             <button
               onClick={handleBack}
-              className="text-slate-400 hover:text-slate-800 transition-colors bg-slate-100 p-2 rounded-full shadow-sm hover:bg-slate-200"
+              className="p-2 text-slate-400 hover:text-blue-600 dark:text-slate-500 dark:hover:text-blue-400 transition-colors bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 flex items-center justify-center"
+              title="뒤로 가기"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 19l-7-7 7-7" /></svg>
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M15 19l-7-7 7-7" />
+              </svg>
             </button>
-          ) : (
-            <span className="text-xs font-bold text-slate-300 ml-1"></span>
           )}
         </div>
 
         {/* Center: Title */}
-        <h1 className="absolute left-1/2 -translate-x-1/2 text-2xl font-black text-slate-800 tracking-tighter italic whitespace-nowrap cursor-pointer select-none" onClick={() => { if (currentView !== 'groups') handleBack(); }}>
+        <h1 className="absolute left-1/2 -translate-x-1/2 text-2xl font-black text-slate-800 dark:text-slate-100 tracking-tighter italic whitespace-nowrap cursor-pointer select-none" onClick={() => { if (currentView !== 'groups') handleBack(); }}>
           {currentView === 'groups' ? (
-            <span>PRAY <span className="text-blue-600">TEAM</span></span>
-          ) : currentView === 'all_prayers' ? (
-            <span className="text-purple-600">전체 기도제목</span>
+            <span>PRAY <span className="text-blue-600 dark:text-blue-400">TEAM</span></span>
+          ) : (currentView === 'all_prayers' || currentView === 'members' || currentView === 'prayers') ? (
+            currentGroup?.name || (currentView === 'all_prayers' ? '전체 기도제목' : 'PRAY TEAM')
           ) : (
-            currentGroup?.name || 'PRAY TEAM'
+            <span>PRAY <span className="text-blue-600 dark:text-blue-400">TEAM</span></span>
           )}
         </h1>
 
-        {/* Right: User Info & Logout */}
-        <div className="flex items-center gap-1.5 w-24 justify-end">
-          {currentGroup && (currentView === 'members' || currentView === 'prayers') && (
-            <button
-              onClick={handleShareGroup}
-              className="p-1.5 text-slate-400 hover:text-blue-600 transition-colors bg-white rounded-lg shadow-sm border border-slate-100"
-              title="그룹 공유"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-              </svg>
-            </button>
-          )}
-
-          <span className="text-xs font-bold text-slate-500 whitespace-nowrap hidden sm:inline">{user.name}님</span>
-
-          {(currentView === 'members' || currentView === 'prayers') && (
-            <button
-              onClick={() => setIsNotificationModalOpen(true)}
-              className={`transition-all duration-300 p-1.5 rounded-lg relative group/noti ${isCurrentGroupNotiEnabled
-                ? 'text-yellow-500 bg-yellow-50'
-                : 'text-slate-300 bg-slate-50 hover:bg-slate-100'
-                }`}
-            >
-              <svg className="w-5 h-5 shadow-sm" fill={isCurrentGroupNotiEnabled ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                {!isCurrentGroupNotiEnabled && (
-                  <line x1="1" y1="1" x2="23" y2="23" stroke="currentColor" strokeWidth="3" className="animate-in fade-in duration-300" />
-                )}
-              </svg>
-              {isCurrentGroupNotiEnabled && (
-                <span className="absolute top-1 right-1 flex h-2 w-2">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-yellow-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-2 w-2 bg-yellow-500"></span>
-                </span>
-              )}
-            </button>
-          )}
-
-          <div className="flex flex-col items-end gap-1">
-            <span className="text-[10px] text-gray-500">3.7.3</span>
-            <button
-              onClick={logout}
-              className="text-xs text-slate-400 hover:text-red-500 font-bold transition-colors px-2 py-1 bg-slate-50 rounded-lg hover:bg-slate-100 whitespace-nowrap"
-            >
-              로그아웃
-            </button>
-          </div>
+        {/* Right: Menu Only */}
+        <div className="w-10 flex justify-end">
+          {/* Hamburger Menu Button */}
+          <button
+            onClick={() => setIsSidebarOpen(true)}
+            className="p-2 text-slate-400 hover:text-slate-600 dark:text-slate-500 dark:hover:text-slate-300 transition-colors bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 flex items-center justify-center group"
+            title="메뉴"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
         </div>
       </div>
+
 
       {isLoading ? (
         <div className="flex flex-col items-center justify-center py-20">
@@ -640,7 +878,7 @@ export default function Home() {
           )}
 
           {currentView === 'prayers' && (
-            <div className="animate-in fade-in slide-in-from-right-8 duration-500">
+            <div id="prayer-note-container" className="animate-in fade-in slide-in-from-right-8 duration-500">
               <PrayerNote
                 prayers={prayers}
                 responses={responses}
@@ -648,16 +886,18 @@ export default function Home() {
                 dates={dates}
                 visibilities={visibilities}
                 memberName={currentMember}
-                onUpdateStatus={handleUpdateStatus}
-                onSaveComment={handleSaveComment}
-                onAddPrayer={handleAddPrayer}
-                onEditPrayer={handleEditPrayer}
+                isReadOnly={isGuestMode}
+                onUpdateStatus={(idx, status) => !isGuestMode && handleUpdateStatus(idx, status)}
+                onSaveComment={(idx, comment) => !isGuestMode && handleSaveComment(idx, comment)}
+                onAddPrayer={(text) => !isGuestMode && handleAddPrayer(text)}
+                onEditPrayer={(idx, text) => !isGuestMode && handleEditPrayer(idx, text)}
+                isCapturing={isCapturing}
               />
             </div>
           )}
 
           {currentView === 'all_prayers' && viewAllData && (
-            <div className="animate-in fade-in slide-in-from-right-8 duration-500">
+            <div id="prayer-note-container" className="animate-in fade-in slide-in-from-right-8 duration-500">
               {/* No local header here, using global header */}
               <PrayerNote
                 prayers={viewAllData.prayers}
@@ -666,13 +906,13 @@ export default function Home() {
                 dates={viewAllData.dates}
                 visibilities={viewAllData.visibilities}
                 metadata={viewAllData.metadata}
+                isCapturing={isCapturing}
               />
             </div>
           )}
         </>
       )}
 
-      {/* Add Group Modal */}
       <AddGroupModal
         isOpen={isAddGroupModalOpen}
         onClose={() => setIsAddGroupModalOpen(false)}
@@ -688,6 +928,37 @@ export default function Home() {
         user={user}
         onStatusChange={setIsCurrentGroupNotiEnabled}
       />
+
+      {/* Sidebar */}
+      <Sidebar
+        isOpen={isSidebarOpen}
+        onClose={() => setIsSidebarOpen(false)}
+        user={user}
+        isDarkMode={isDarkMode}
+        onToggleDarkMode={toggleDarkMode}
+        onLogout={logout}
+        isGuestMode={isGuestMode}
+        currentGroup={currentGroup}
+        onShareGroup={handleShareGroup}
+        onOpenNotificationSettings={() => setIsNotificationModalOpen(true)}
+        isCurrentGroupNotiEnabled={isCurrentGroupNotiEnabled}
+        onCaptureImage={captureAsImage}
+        currentMember={currentMember}
+        currentView={currentView}
+      />
+
+      {/* Debug Log Area */}
+      {debugLogs.length > 0 && (
+        <div className="fixed bottom-0 left-0 right-0 bg-black/80 text-green-400 p-4 font-mono text-xs max-h-40 overflow-y-auto z-[100] border-t border-green-500">
+          <div className="flex justify-between items-center mb-2">
+            <h3 className="font-bold">Debug Logs</h3>
+            <button onClick={() => setDebugLogs([])} className="text-white bg-slate-700 px-2 py-1 rounded">Clear</button>
+          </div>
+          {debugLogs.map((log, i) => (
+            <div key={i}>{log}</div>
+          ))}
+        </div>
+      )}
     </main>
   );
 }

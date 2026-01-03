@@ -4,20 +4,31 @@ export default function GroupList({ groups, onSelectGroup, onAddGroup, onViewAll
     if (!groups || groups.length === 0) {
         return (
             <div className="flex flex-col items-center justify-center py-20 animate-in fade-in duration-700">
-                <div className="w-20 h-20 bg-blue-50 rounded-[2rem] flex items-center justify-center mb-6 animate-bounce-subtle">
+                <div className="w-20 h-20 bg-blue-50 dark:bg-blue-900/30 rounded-[2rem] flex items-center justify-center mb-6 animate-bounce-subtle">
                     <span className="text-4xl">✨</span>
                 </div>
-                <h3 className="text-2xl font-black text-slate-800 mb-2">아직 그룹이 없습니다</h3>
-                <p className="text-slate-400 font-bold mb-8 text-center max-w-xs leading-relaxed">
+                <h3 className="text-2xl font-black text-slate-800 dark:text-white mb-2">아직 그룹이 없습니다</h3>
+                <p className="text-slate-400 dark:text-slate-500 font-bold mb-8 text-center max-w-xs leading-relaxed">
                     새로운 기도 그룹을 만들고<br />멤버들을 초대해보세요!
                 </p>
-                <button
-                    onClick={onAddGroup}
-                    className="px-8 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-2xl font-black text-lg shadow-xl shadow-blue-200 hover:shadow-2xl hover:scale-105 active:scale-95 transition-all flex items-center gap-2 group"
-                >
-                    <span className="text-xl">➕</span>
-                    새 그룹 만들기
-                </button>
+                {/* View All Prayers & Create Group Button Container */}
+                <div className="flex flex-col gap-3 mt-8">
+                    <button
+                        onClick={onViewAll}
+                        className="w-full py-4 bg-white dark:bg-black border-2 border-slate-100 dark:border-slate-800 text-slate-600 dark:text-slate-300 rounded-2xl font-black text-lg shadow-sm hover:border-blue-400 dark:hover:border-blue-500 hover:text-blue-600 dark:hover:text-blue-400 transition-all flex items-center justify-center gap-2 group"
+                    >
+                        <span className="text-xl group-hover:scale-110 transition-transform">📋</span>
+                        전체 기도제목 보기
+                    </button>
+
+                    <button
+                        onClick={onAddGroup}
+                        className="w-full py-4 bg-white dark:bg-black border-2 border-slate-100 dark:border-slate-800 text-slate-500 dark:text-slate-400 rounded-2xl font-black text-lg shadow-sm hover:border-blue-200 dark:hover:border-blue-700 hover:text-blue-500 dark:hover:text-blue-300 transition-all flex items-center justify-center gap-2 group italic"
+                    >
+                        <span className="text-xl group-hover:rotate-12 transition-transform">➕</span>
+                        새 그룹 만들기
+                    </button>
+                </div>
             </div>
         );
     }
@@ -25,8 +36,8 @@ export default function GroupList({ groups, onSelectGroup, onAddGroup, onViewAll
     return (
         <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="text-center mb-10">
-                <h2 className="text-3xl font-black text-slate-800 tracking-tight">기도 그룹</h2>
-                <p className="text-slate-400 font-bold mt-2 tracking-wide text-sm">함께 기도할 그룹을 선택해주세요</p>
+                <h2 className="text-3xl font-black text-slate-800 dark:text-white tracking-tight">기도 그룹</h2>
+                <p className="text-slate-400 dark:text-slate-400 font-bold mt-2 tracking-wide text-sm">함께 기도할 그룹을 선택해주세요</p>
             </div>
 
             {/* Group Buttons Grid */}

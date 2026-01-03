@@ -7,19 +7,44 @@
   --foreground: #0f172a;
 }
 
+.dark {
+  --background: #000000;
+  --foreground: #f8fafc;
+}
+
 body {
   color: var(--foreground);
   background: var(--background);
-  background-image: 
-    radial-gradient(at 0% 0%, hsla(210,100%,96%,1) 0, transparent 50%), 
-    radial-gradient(at 50% 0%, hsla(225,100%,96%,1) 0, transparent 50%), 
-    radial-gradient(at 100% 0%, hsla(240,100%,96%,1) 0, transparent 50%);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Light mode gradient background */
+body:not(.dark) {
+  background-image:
+    radial-gradient(at 0% 0%, hsla(210, 100%, 96%, 1) 0, transparent 50%),
+    radial-gradient(at 50% 0%, hsla(225, 100%, 96%, 1) 0, transparent 50%),
+    radial-gradient(at 100% 0%, hsla(240, 100%, 96%, 1) 0, transparent 50%);
+}
+
+/* Dark mode gradient background */
+.dark body {
+  background-image:
+    radial-gradient(at 0% 0%, hsla(220, 30%, 15%, 1) 0, transparent 50%),
+    radial-gradient(at 50% 0%, hsla(230, 30%, 12%, 1) 0, transparent 50%),
+    radial-gradient(at 100% 0%, hsla(240, 30%, 15%, 1) 0, transparent 50%);
 }
 
 /* Custom Animations */
 @keyframes bounce-subtle {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-5px); }
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-5px);
+  }
 }
 
 .animate-bounce-subtle {
