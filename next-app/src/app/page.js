@@ -338,6 +338,7 @@ export default function Home() {
 
       const params = new URLSearchParams(hash.split('?')[1]);
       const groupId = params.get('groupId');
+      const targetMember = params.get('member') ? decodeURIComponent(params.get('member')) : null;
 
       if (groupId) {
         // [Guest Mode Logic]
@@ -354,13 +355,56 @@ export default function Home() {
               setIsGuestMode(true);
               setCurrentGroup(formattedGroup);
 
-              // 즉시 데이터 로드 호출
-              handleViewAllPrayersForGroup(formattedGroup);
+              // 데이터 로드
+              const prayersData = await gasClient.getGroupPrayers(groupId);
 
-              logVisit('guest_view', { groupId });
+              // 1. 전체 보기 데이터 설정
+              const prayersList = []; const responsesList = [];
+              const commentsList = []; const datesList = [];
+              const visibilitiesList = []; const metadataList = [];
+
+              // groupPrayersRef 업데이트 (나중에 멤버 전환 시 사용)
+              groupPrayersRef.current = prayersData;
+
+              Object.keys(prayersData).forEach(member => {
+                const pData = prayersData[member];
+                pData.prayers.forEach((p, idx) => {
+                  if (pData.visibilities && pData.visibilities[idx] === false) return;
+                  prayersList.push(p);
+                  responsesList.push(pData.responses[idx]);
+                  commentsList.push(pData.comments[idx]);
+                  datesList.push(pData.dates ? pData.dates[idx] : '');
+                  visibilitiesList.push(true);
+                  metadataList.push({ member, originalIndex: idx });
+                });
+              });
+
+              setViewAllData({
+                prayers: prayersList, responses: responsesList,
+                comments: commentsList, dates: datesList,
+                visibilities: visibilitiesList, metadata: metadataList
+              });
+
+              // 2. 타겟 멤버가 있고 유효한 경우 해당 멤버 뷰로 이동
+              if (targetMember && prayersData[targetMember]) {
+                setCurrentMember(targetMember);
+                const tmData = prayersData[targetMember];
+                setPrayers(tmData.prayers);
+                setResponses(tmData.responses);
+                setComments(tmData.comments);
+                setDates(tmData.dates || []);
+                setVisibilities(tmData.visibilities || []);
+                setIndices(tmData.indices || []);
+                setCurrentView('prayers');
+                logVisit('prayer_note_direct', { groupId, member: targetMember });
+              } else {
+                setCurrentView('all_prayers');
+                logVisit('guest_view', { groupId });
+              }
             }
           } catch (e) {
             console.error('Guest access failed', e);
+            showToast('그룹 정보를 불러오는데 실패했습니다.', 'error');
           } finally {
             setIsLoading(false);
             setIsInitialLoad(false);
@@ -398,16 +442,27 @@ export default function Home() {
   }, [currentGroup, logVisit]);
 
   // ✅ New Handler: Share current group link
+  // ✅ New Handler: Share current group link
   const handleShareGroup = useCallback(() => {
     if (!currentGroup) return;
-    const url = `${window.location.origin}/#members?groupId=${currentGroup.groupId}`;
+
+    let url = `https://praygroup.creat1324.com/#members?groupId=${currentGroup.groupId}`;
+
+    // 특정 멤버의 기도제목을 보고 있다면 해당 멤버 링크 생성
+    if (currentView === 'prayers' && currentMember) {
+      url += `&member=${encodeURIComponent(currentMember)}`;
+    }
+
     navigator.clipboard.writeText(url).then(() => {
-      showToast('✨ 그룹 링크를 복사했습니다. 소중한 분들께 전해보세요!', 'success');
+      const msg = currentView === 'prayers' && currentMember
+        ? `✨ ${currentMember}님의 기도제목 링크를 복사했습니다!`
+        : '✨ 그룹 링크를 복사했습니다. 소중한 분들께 전해보세요!';
+      showToast(msg, 'success');
     }).catch(err => {
       console.error('Failed to copy', err);
       showToast('링크 복사에 실패했습니다.', 'error');
     });
-  }, [currentGroup, showToast]);
+  }, [currentGroup, currentView, currentMember, showToast]);
 
   const handleBack = useCallback(() => {
     window.history.back();
@@ -958,7 +1013,7 @@ export default function Home() {
                   onClick={() => downloadImage(capturedImage, capturedFileName)}
                   className="px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold transition-all flex items-center gap-2"
                 >
-                  <span>💾 PC 다운로드</span>
+                  <span>💾 다운로드</span>
                 </button>
                 <button
                   onClick={closeCaptureModal}
