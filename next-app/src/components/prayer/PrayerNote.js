@@ -403,7 +403,7 @@ export default function PrayerNote({
                         <div className="flex-1">
                             {!isExpanded ? (
                                 <div className="flex justify-between items-start gap-4">
-                                    <p className={`text-slate-800 font-bold ${isCompact ? 'text-lg' : 'text-xl'} leading-relaxed break-keep whitespace-pre-wrap`}>
+                                    <p className={`text-slate-800 font-black ${isCompact ? 'text-xl' : 'text-2xl'} leading-relaxed break-keep whitespace-pre-wrap`}>
                                         {text}
                                     </p>
 
@@ -420,7 +420,7 @@ export default function PrayerNote({
                             ) : (
                                 <div onClick={(e) => e.stopPropagation()}>
                                     {metadata ? (
-                                        <p className="text-lg font-bold text-slate-800 leading-relaxed px-1">
+                                        <p className="text-xl font-black text-slate-800 leading-relaxed px-1">
                                             {text}
                                         </p>
                                     ) : (
@@ -429,7 +429,7 @@ export default function PrayerNote({
                                             value={tempPrayerText}
                                             onChange={(e) => setTempPrayerText(e.target.value)}
                                             onBlur={() => handlePrayerEditSubmit(index)}
-                                            className="w-full bg-white border-2 border-slate-100 rounded-xl px-4 py-3 text-lg font-black text-slate-800 focus:border-blue-400 focus:outline-none resize-none shadow-inner transition-all overflow-hidden"
+                                            className="w-full bg-white border-2 border-slate-100 rounded-xl px-4 py-3 text-xl font-black text-slate-800 focus:border-blue-400 focus:outline-none resize-none shadow-inner transition-all overflow-hidden"
                                             rows={1}
                                             placeholder="기도제목을 입력하세요"
                                         />
@@ -549,7 +549,7 @@ export default function PrayerNote({
                 <div className="mb-6">
                     <div className="flex items-center justify-between">
                         <div>
-                            <h2 className="text-3xl font-black text-slate-800 tracking-tight">🙏 {memberName} 기도 노트</h2>
+                            <h2 className="text-4xl font-black text-slate-800 tracking-tight">🙏 {memberName} 기도 노트</h2>
                             <p className="text-slate-400 text-xs font-bold mt-1 uppercase tracking-widest">Prayer Journal</p>
                         </div>
                         <button
