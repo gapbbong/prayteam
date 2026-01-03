@@ -728,10 +728,10 @@ export default function Home() {
             text: `${currentGroup?.name || '기도팀'} - ${safeMemberName}님의 기도제목`
           }).catch((err) => {
             console.error('Share failed', err);
-            downloadImage(blob, fileName);
+            copyToClipboard(blob, fileName);
           });
         } else {
-          downloadImage(blob, fileName);
+          copyToClipboard(blob, fileName);
         }
 
         showToast('이미지가 생성되었습니다!');
@@ -742,6 +742,23 @@ export default function Home() {
       showToast('이미지 생성 중 오류가 발생했습니다.');
     } finally {
       setIsCapturing(false);
+    }
+  };
+
+  const copyToClipboard = async (blob, fileName) => {
+    try {
+      if (typeof ClipboardItem !== 'undefined') {
+        await navigator.clipboard.write([
+          new ClipboardItem({ 'image/png': blob })
+        ]);
+        showToast('📋 이미지가 복사되었습니다! 카톡에 붙여넣기 하세요.', 'success');
+      } else {
+        throw new Error('ClipboardItem not supported');
+      }
+    } catch (err) {
+      console.error('Clipboard copy failed', err);
+      showToast('이미지 다운로드를 시작합니다.');
+      downloadImage(blob, fileName);
     }
   };
 
