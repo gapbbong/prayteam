@@ -732,13 +732,15 @@ export default function Home() {
             });
             showToast('공유가 완료되었습니다!', 'success');
           } catch (shareError) {
-            console.warn('Share canceled or failed, trying clipboard...', shareError);
-            await copyToClipboard(blob, fileName);
+            console.warn('Share canceled or failed, downloading instead...', shareError);
+            showToast('이미지를 다운로드합니다.');
+            downloadImage(blob, fileName);
           }
         }
-        // 2. 공유 API 불가 시 클립보드 복사 시도
+        // 2. 공유 API 불가 시 바로 다운로드
         else {
-          await copyToClipboard(blob, fileName);
+          showToast('이미지를 다운로드합니다.');
+          downloadImage(blob, fileName);
         }
 
       } catch (blobError) {
@@ -754,24 +756,7 @@ export default function Home() {
     }
   };
 
-  const copyToClipboard = async (blob, fileName) => {
-    try {
-      // Clipboard API Check
-      if (typeof ClipboardItem !== 'undefined' && navigator.clipboard && navigator.clipboard.write) {
-        await navigator.clipboard.write([
-          new ClipboardItem({ 'image/png': blob })
-        ]);
-        showToast('📋 이미지가 복사되었습니다! 채팅방에 붙여넣기(Ctrl+V) 하세요.', 'success');
-      } else {
-        throw new Error('Clipboard API not supported');
-      }
-    } catch (err) {
-      console.error('Clipboard copy failed:', err);
-      // 복사 실패 시 다운로드로 fallback
-      showToast('이미지를 다운로드합니다.');
-      downloadImage(blob, fileName);
-    }
-  };
+  // copyToClipboard 함수 제거됨
 
   const downloadImage = (blob, fileName) => {
     const url = URL.createObjectURL(blob);
