@@ -5,7 +5,7 @@ import { useToast } from '@/context/ToastContext';
 
 export default function AddGroupModal({ isOpen, onClose, onSubmit }) {
     const [groupName, setGroupName] = useState('');
-    const [members, setMembers] = useState(['']);
+    const [members, setMembers] = useState(['', '']);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const handleAddMemberField = () => {
@@ -141,7 +141,7 @@ export default function AddGroupModal({ isOpen, onClose, onSubmit }) {
                         </button>
                         <button
                             type="submit"
-                            disabled={isSubmitting}
+                            disabled={isSubmitting || !groupName.trim() || members.length < 2 || !members[0]?.trim() || !members[1]?.trim()}
                             className="flex-1 px-4 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-xl font-bold hover:shadow-lg hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             {isSubmitting ? '만드는 중...' : '만들기'}
