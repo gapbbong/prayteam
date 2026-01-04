@@ -29,7 +29,6 @@ export default function Sidebar({
     onCaptureImage,
     onShareText,
     currentMember,
-    currentMember,
     currentView,
     onStatusChange // [NEW] Parent state updater
 }) {
