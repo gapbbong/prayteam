@@ -1012,7 +1012,7 @@ export default function Home() {
                 dates={dates}
                 visibilities={visibilities}
                 memberName={currentMember}
-                isReadOnly={isGuestMode}
+                isReadOnly={false}
                 onUpdateStatus={handleUpdateStatus}
                 onSaveComment={handleSaveComment}
                 onAddPrayer={handleAddPrayer}
