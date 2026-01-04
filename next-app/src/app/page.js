@@ -344,7 +344,8 @@ export default function Home() {
 
       if (groupId) {
         // [Guest Mode Logic]
-        if (!user) {
+        // 로그인 여부와 상관없이, URL에 groupId가 있으면 해당 그룹을 우선 표시
+        if (groupId) {
           setIsLoading(true);
           try {
             const res = await gasClient.getGroupById(groupId);
@@ -627,7 +628,7 @@ export default function Home() {
         setCurrentGroup(null);
         setCurrentMember(null);
         setViewAllData(null);
-      } else if (hash === '#members') {
+      } else if (hash.startsWith('#members')) {
         if (state.group) setCurrentGroup(state.group);
         setCurrentView('members');
         setCurrentMember(null);

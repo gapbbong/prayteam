@@ -729,6 +729,32 @@
     /* 📌 LOAD 이벤트 (1개만) */
     /* ========================================================================= */
     window.addEventListener("load", async () => {
+      
+      /* ------------------ 🔗 공유 링크 리다이렉트 체크 ------------------ */
+      const hash = window.location.hash;
+      if (hash && hash.startsWith("#members")) {
+        try {
+          // 예: #members?groupId=xxxx 형식 파싱
+          const queryPart = hash.split("?")[1];
+          if (queryPart) {
+            const params = new URLSearchParams(queryPart);
+            const gid = params.get("groupId");
+            
+            if (gid) {
+              // 🚀 발견 즉시 이동 (로그인 체크 건너뜀)
+              const overlay = document.getElementById("loadingOverlay");
+              if (overlay) {
+                overlay.style.display = "flex";
+                overlay.querySelector("p").innerText = "🚀 기도제목 페이지로 이동 중...";
+              }
+              window.location.replace(`record.html?gid=${gid}&from=index`);
+              return; // 이후 로직 실행 중단
+            }
+          }
+        } catch (e) {
+          console.error("리다이렉트 파싱 오류:", e);
+        }
+      }
       // ★ 자동 로그인 여부 체크
       const savedId = localStorage.getItem("loginId");
       const savedPwd = localStorage.getItem("loginPwd");
