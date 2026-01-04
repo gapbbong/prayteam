@@ -7,6 +7,7 @@ export default function AddGroupModal({ isOpen, onClose, onSubmit }) {
     const [groupName, setGroupName] = useState('');
     const [members, setMembers] = useState(['', '']);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const { showToast } = useToast();
 
     const handleAddMemberField = () => {
         setMembers([...members, '']);
@@ -27,7 +28,6 @@ export default function AddGroupModal({ isOpen, onClose, onSubmit }) {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        const { showToast } = useToast();
         if (!groupName.trim()) {
             showToast('그룹 이름을 입력해주세요.', 'error');
             return;
@@ -41,7 +41,7 @@ export default function AddGroupModal({ isOpen, onClose, onSubmit }) {
 
             await onSubmit(groupName.trim(), memberList);
             setGroupName('');
-            setMembers(['']);
+            setMembers(['', '']);
             onClose();
         } catch (error) {
             console.error('Failed to create group:', error);
