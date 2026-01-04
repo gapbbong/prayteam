@@ -572,11 +572,7 @@ export default function Home() {
       setIsLoading(true);
       const result = await gasClient.addGroup(user.id, groupName.trim(), memberList);
       if (!result || !result.success) throw new Error(result?.message || '그룹 추가에 실패했습니다.');
-      if (memberList && memberList.length > 0 && result.groupId) {
-        for (const member of memberList) {
-          try { await gasClient.addMember(result.groupId, member); } catch (err) { console.error(`Failed to add member ${member}:`, err); }
-        }
-      }
+
       await loadGroups();
       showToast(`"${groupName}" 그룹이 성공적으로 만들어졌습니다!`, 'success');
     } catch (error) {
