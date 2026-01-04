@@ -1,7 +1,7 @@
 import webpush from 'web-push';
 import { NextResponse } from 'next/server';
 
-const GAS_URL = "https://script.google.com/macros/s/AKfycbzxjl8ZO8sCMGY7WNXGT0H4VxlTHYYqd-HVPEVOEGMg9fvdmaF1fRH4amG_9CnY2DP5/exec";
+const GAS_URL = "https://script.google.com/macros/s/AKfycbzxeKZ-3ibGFZf3r8T91KNPuvl8Kr5pFDxPPnddODhizSuYzY_LkkzTCFvMgEbSGfxF/exec";
 
 // VAPID Keys (Previously from notify.js)
 const vapidKeys = {
