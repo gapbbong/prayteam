@@ -33,11 +33,17 @@ export default function AddGroupModal({ isOpen, onClose, onSubmit }) {
             return;
         }
 
+        const memberList = members
+            .map(m => m.trim())
+            .filter(m => m !== '');
+
+        if (memberList.length < 2) {
+            showToast('최소 2명의 멤버를 입력해주세요.', 'error');
+            return;
+        }
+
         setIsSubmitting(true);
         try {
-            const memberList = members
-                .map(m => m.trim())
-                .filter(m => m !== '');
 
             await onSubmit(groupName.trim(), memberList);
             setGroupName('');
