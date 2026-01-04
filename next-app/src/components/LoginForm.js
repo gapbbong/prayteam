@@ -33,18 +33,18 @@ export default function LoginForm() {
     };
 
     return (
-        <div className="w-full max-w-md mx-auto bg-white rounded-[2.5rem] shadow-2xl p-8 border border-slate-100 animate-in fade-in zoom-in-95 duration-500">
-            <div className="flex items-center gap-4 mb-8">
+        <div className="w-full max-w-md mx-auto bg-white rounded-[2.5rem] shadow-2xl p-6 border border-slate-100 animate-in fade-in zoom-in-95 duration-500">
+            <div className="flex items-center gap-4 mb-6">
                 <div className="flex items-center justify-center w-16 h-16 bg-blue-100 rounded-2xl flex-shrink-0 animate-bounce-subtle">
                     <span className="text-4xl">🙏</span>
                 </div>
                 <div className="flex-1 text-left">
-                    <h2 className="text-3xl font-black text-slate-800 tracking-tight">반갑습니다^^</h2>
-                    <p className="text-slate-500 mt-1 font-medium">기도팀 서비스에 오신 것을 환영합니다</p>
+                    <h2 className="text-2xl font-black text-slate-800 tracking-tight">반갑습니다^^</h2>
+                    <p className="text-slate-500 text-sm font-medium">기도팀 서비스에 오신 것을 환영합니다</p>
                 </div>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="space-y-2">
                     <label className="text-sm font-bold text-slate-600 ml-1">아이디</label>
                     <input
@@ -81,7 +81,7 @@ export default function LoginForm() {
                 <button
                     type="submit"
                     disabled={loading}
-                    className="w-full py-5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-2xl font-black text-lg shadow-xl shadow-blue-200 hover:shadow-2xl hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2 group disabled:opacity-70 disabled:scale-100 disabled:hover:shadow-xl"
+                    className="w-full py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-2xl font-black text-lg shadow-xl shadow-blue-200 hover:shadow-2xl hover:scale-[1.02] active:scale-95 transition-all flex items-center justify-center gap-2 group disabled:opacity-70 disabled:scale-100 disabled:hover:shadow-xl"
                 >
                     {loading ? (
                         <LoadingDots label="" />
