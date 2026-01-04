@@ -76,8 +76,8 @@ export const gasClient = {
     return this.request({ mode: 'getGroupById', groupId }, 'GET');
   },
 
-  async addGroup(adminId, groupName) {
-    return this.request({ mode: 'addGroup', adminId, groupName });
+  async addGroup(adminId, groupName, members = []) {
+    return this.request({ mode: 'addGroup', adminId, groupName, members });
   },
 
   async addMember(groupId, memberName) {

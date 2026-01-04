@@ -570,7 +570,7 @@ export default function Home() {
     }
     try {
       setIsLoading(true);
-      const result = await gasClient.addGroup(user.id, groupName.trim());
+      const result = await gasClient.addGroup(user.id, groupName.trim(), memberList);
       if (!result || !result.success) throw new Error(result?.message || '그룹 추가에 실패했습니다.');
       if (memberList && memberList.length > 0 && result.groupId) {
         for (const member of memberList) {
