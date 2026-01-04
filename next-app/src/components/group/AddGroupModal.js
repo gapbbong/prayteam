@@ -81,7 +81,7 @@ export default function AddGroupModal({ isOpen, onClose, onSubmit }) {
                 <form onSubmit={handleSubmit} className="space-y-4">
                     {/* Group Name */}
                     <div>
-                        <label className="block text-sm font-bold text-slate-700 mb-2">
+                        <label className="block text-base font-bold text-slate-700 mb-2">
                             그룹 이름 *
                         </label>
                         <input
@@ -96,10 +96,10 @@ export default function AddGroupModal({ isOpen, onClose, onSubmit }) {
 
                     {/* Members */}
                     <div>
-                        <label className="block text-sm font-bold text-slate-700 mb-1">
+                        <label className="block text-base font-bold text-slate-700 mb-1">
                             멤버
                         </label>
-                        <p className="text-xs text-slate-500 mb-2">최소 2명의 멤버를 입력해주세요</p>
+                        <p className="text-sm text-slate-500 mb-2">최소 2명의 멤버를 입력해주세요</p>
                         <div className="space-y-2">
                             {members.map((member, index) => (
                                 <div key={index} className="flex gap-2">
