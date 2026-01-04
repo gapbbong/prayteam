@@ -1,4 +1,5 @@
-'use client';
+import { gasClient } from "@/lib/gasClient";
+import { useToast } from "@/context/ToastContext";
 
 export default function Sidebar({
     isOpen,
@@ -17,6 +18,36 @@ export default function Sidebar({
     currentMember,
     currentView
 }) {
+    const { showToast } = useToast();
+
+    const handleEnableNotifications = async () => {
+        if (!currentGroup) return;
+
+        try {
+            const permission = await Notification.requestPermission();
+            if (permission !== 'granted') {
+                showToast('알림 권한이 거부되었습니다.', 'error');
+                return;
+            }
+
+            const registration = await navigator.serviceWorker.ready;
+            const subscription = await registration.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: 'BCm.....................' // VAPID Key 필요 (임시 생략/확인 필요) - Google Apps Script에는 보통 VAPID 없이 endpoint로 보낼 수 있음
+            });
+
+            await gasClient.saveSub({
+                groupId: currentGroup.groupId,
+                subscription: subscription.toJSON()
+            });
+
+            showToast('알림이 설정되었습니다!', 'success');
+            onClose();
+        } catch (error) {
+            console.error('Notification Error:', error);
+            showToast('알림 설정 중 오류가 발생했습니다.', 'error');
+        }
+    };
     return (
         <>
             {/* Backdrop */}
@@ -62,12 +93,16 @@ export default function Sidebar({
 
                     {/* Menu Items */}
                     <div className="space-y-2">
-                        {/* 1. Notification Settings (조건부) */}
-                        {currentGroup && !isGuestMode && (
+                        {/* 1. Notification Settings (조건부) */}{/* 게스트도 알림 설정 가능하게 변경 */}
+                        {currentGroup && (
                             <button
                                 onClick={() => {
-                                    onOpenNotificationSettings();
-                                    onClose();
+                                    if (!isCurrentGroupNotiEnabled) {
+                                        handleEnableNotifications();
+                                    } else {
+                                        onOpenNotificationSettings();
+                                        onClose();
+                                    }
                                 }}
                                 className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-white/10 transition-colors group"
                             >
