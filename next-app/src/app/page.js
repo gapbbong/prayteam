@@ -750,6 +750,22 @@ export default function Home() {
     setVisibilities(newVisibilities);
     setDates(newDates);
 
+    // [Fix] Update Parent State (groupPrayers) for MemberList synchronization
+    setGroupPrayers(prev => {
+      const next = { ...prev };
+      next[currentMember] = {
+        ...next[currentMember],
+        prayers: newPrayers,
+        responses: newResponses,
+        comments: newComments,
+        dates: newDates,
+        visibilities: newVisibilities,
+        indices: indices // Keep indices as is or update if needed
+      };
+      groupPrayersRef.current = next; // Sync Ref
+      return next;
+    });
+
     // Save Immediately
     setIsSaving(true);
     try {
@@ -808,6 +824,22 @@ export default function Home() {
         responses: responses,
         comments: comments,
         visibilities: visibilities
+      });
+
+      // [Fix] Sync Parent State (groupPrayers) on Save All
+      setGroupPrayers(prev => {
+        const next = { ...prev };
+        next[currentMember] = {
+          ...next[currentMember],
+          prayers: prayers,
+          responses: responses,
+          comments: comments,
+          visibilities: visibilities,
+          dates: dates, // Keep current dates
+          indices: indices
+        };
+        groupPrayersRef.current = next; // Sync Ref
+        return next;
       });
 
       setHasUnsavedChanges(false);
