@@ -5,12 +5,12 @@ const { CONFIG } = require("./config.js");
 
 // 🔑 VAPID 키 (record.html의 applicationServerKey와 publicKey 반드시 동일!)
 const vapidKeys = {
-  publicKey: "BI18lvSQsbHQtOQq7r7E5kx_nHAC9pvHdjgN16yTd2cs38vQgbniDUiOnV6ja8OceKY9ku_q2RyC1owPsfghJeE",              
+  publicKey: "BI18lvSQsbHQtOQq7r7E5kx_nHAC9pvHdjgN16yTd2cs38vQgbniDUiOnV6ja8OceKY9ku_q2RyC1owPsfghJeE",
   privateKey: "KQ0kaZqVbLbQqZn6dF-hD6Fazr0xHfn8xXLPfx3xL5A"
 };
 
 webpush.setVapidDetails(
-  "mailto:admin@prayteam.com",
+  "mailto:admin@praygroup.com",
   vapidKeys.publicKey,
   vapidKeys.privateKey
 );
