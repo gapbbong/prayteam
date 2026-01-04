@@ -432,7 +432,13 @@ export default function PrayerNote({
                                         <textarea
                                             ref={textareaRef}
                                             value={tempPrayerText}
-                                            onChange={(e) => setTempPrayerText(e.target.value)}
+                                            onChange={(e) => {
+                                                setTempPrayerText(e.target.value);
+                                                // Trigger save button immediately on change
+                                                if (e.target.value.trim() !== prayers[index]) {
+                                                    onEditPrayer(index, e.target.value);
+                                                }
+                                            }}
                                             onBlur={() => handlePrayerEditSubmit(index)}
                                             className="w-full bg-white dark:bg-black border-2 border-slate-100 dark:border-slate-800 rounded-xl px-4 py-3 text-xl font-black text-slate-800 dark:text-white focus:border-blue-400 dark:focus:border-blue-500 focus:outline-none resize-none shadow-inner transition-all overflow-hidden"
                                             rows={1}
