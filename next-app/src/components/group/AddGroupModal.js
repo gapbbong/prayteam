@@ -28,22 +28,12 @@ export default function AddGroupModal({ isOpen, onClose, onSubmit }) {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        if (!groupName.trim()) {
-            showToast('그룹 이름을 입력해주세요.', 'error');
-            return;
-        }
-
-        const memberList = members
-            .map(m => m.trim())
-            .filter(m => m !== '');
-
-        if (memberList.length < 2) {
-            showToast('최소 2명의 멤버를 입력해주세요.', 'error');
-            return;
-        }
 
         setIsSubmitting(true);
         try {
+            const memberList = members
+                .map(m => m.trim())
+                .filter(m => m !== '');
 
             await onSubmit(groupName.trim(), memberList);
             setGroupName('');
