@@ -34,12 +34,14 @@ export default function LoginForm() {
 
     return (
         <div className="w-full max-w-md mx-auto bg-white rounded-[2.5rem] shadow-2xl p-8 border border-slate-100 animate-in fade-in zoom-in-95 duration-500">
-            <div className="text-center mb-8">
-                <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-2xl mb-4 animate-bounce-subtle">
+            <div className="flex items-center gap-4 mb-8">
+                <div className="flex items-center justify-center w-16 h-16 bg-blue-100 rounded-2xl flex-shrink-0 animate-bounce-subtle">
                     <span className="text-4xl">🙏</span>
                 </div>
-                <h2 className="text-3xl font-black text-slate-800 tracking-tight">반갑습니다^^</h2>
-                <p className="text-slate-500 mt-2 font-medium">기도팀 서비스에 오신 것을 환영합니다</p>
+                <div className="flex-1 text-left">
+                    <h2 className="text-3xl font-black text-slate-800 tracking-tight">반갑습니다^^</h2>
+                    <p className="text-slate-500 mt-1 font-medium">기도팀 서비스에 오신 것을 환영합니다</p>
+                </div>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-6">
@@ -84,12 +86,7 @@ export default function LoginForm() {
                     {loading ? (
                         <LoadingDots label="" />
                     ) : (
-                        <>
-                            로그인
-                            <svg className="w-5 h-5 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                            </svg>
-                        </>
+                        "로그인"
                     )}
                 </button>
 
