@@ -60,6 +60,8 @@ export default function Home() {
     return false;
   });
   const [isCapturing, setIsCapturing] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   // [추가] 다크모드 초기화 로직 (새로고침 시 적용 보장)
   useEffect(() => {
@@ -711,25 +713,8 @@ export default function Home() {
       setVisibilities(newVisibilities);
     }
 
-    try {
-      const realIndex = indices[index]; // [수정] 실제 슬롯 인덱스 사용
-      await gasClient.saveNote({
-        groupId: currentGroup.groupId,
-        member: currentMember,
-        index: realIndex,
-        answer: status !== undefined ? status : responses[index],
-        comment: comments[index] || '',
-        visibility: visibility // Optional param
-      });
-    } catch (error) {
-      console.error('Update status failed', error);
-      // Re-fetch to revert on error
-      const data = await gasClient.getPrayers(currentGroup.groupId, currentMember);
-      if (data) {
-        setResponses(data.responses || []);
-        setVisibilities(data.visibilities || []);
-      }
-    }
+    // Mark as unsaved
+    setHasUnsavedChanges(true);
   };
 
   // ✅ New Handler: Add a new prayer
@@ -739,11 +724,8 @@ export default function Home() {
     const newPrayers = [...prayers, newText];
     const newResponses = [...responses, '기대중'];
     const newComments = [...comments, ''];
-    const newVisibilities = [...visibilities, 'Show'];
-    // dates will be handled by backend, but optimistically set today with time
-    const now = new Date();
-    const today = `${now.getFullYear()}.${String(now.getMonth() + 1).padStart(2, '0')}.${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
-    const newDates = [...dates, today];
+    const newVisibilities = [...visibilities, ''];
+    const newDates = [...dates, ''];
 
     // Optimistic UI Update
     setPrayers(newPrayers);
@@ -752,20 +734,7 @@ export default function Home() {
     setVisibilities(newVisibilities);
     setDates(newDates);
 
-    try {
-      await gasClient.savePrayer({
-        groupId: currentGroup.groupId,
-        groupName: currentGroup.name,
-        member: currentMember,
-        prayers: newPrayers,
-        responses: newResponses,
-        comments: newComments,
-        visibilities: newVisibilities
-      });
-    } catch (error) {
-      console.error('Add prayer failed', error);
-      // Revert logic would go here (omitted for brevity)
-    }
+    setHasUnsavedChanges(true);
   };
 
   // ✅ New Handler: Edit existing prayer text
@@ -776,38 +745,39 @@ export default function Home() {
     newPrayers[index] = newText;
     setPrayers(newPrayers);
 
-    try {
-      await gasClient.savePrayer({
-        groupId: currentGroup.groupId,
-        groupName: currentGroup.name,
-        member: currentMember,
-        prayers: newPrayers,
-        responses: responses,
-        comments: comments,
-        visibilities: visibilities
-      });
-    } catch (error) {
-      console.error('Edit prayer failed', error);
-    }
+    setHasUnsavedChanges(true);
   };
 
   const handleSaveComment = async (index, comment) => {
     const newComments = [...comments];
     newComments[index] = comment;
     setComments(newComments);
+    setHasUnsavedChanges(true);
+  };
 
+  // 💾 Save All Changes
+  const handleSaveAll = async () => {
+    if (!hasUnsavedChanges || isSaving) return;
+
+    setIsSaving(true);
     try {
-      const realIndex = indices[index]; // [수정] 실제 슬롯 인덱스 사용
-      await gasClient.saveNote({
+      await gasClient.savePrayer({
         groupId: currentGroup.groupId,
+        groupName: currentGroup.name,
         member: currentMember,
-        index: realIndex,
-        answer: responses[index] || '',
-        comment: comment
+        prayers: prayers,
+        responses: responses,
+        comments: comments,
+        visibilities: visibilities
       });
+
+      setHasUnsavedChanges(false);
+      showToast('✅ 저장되었습니다!', 'success');
     } catch (error) {
-      console.error('Save comment failed', error);
-      // Revert logic
+      console.error('Save all failed:', error);
+      showToast('❌ 저장에 실패했습니다. 다시 시도해주세요.', 'error');
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -1028,10 +998,13 @@ export default function Home() {
                 visibilities={visibilities}
                 memberName={currentMember}
                 isReadOnly={isGuestMode}
-                onUpdateStatus={(idx, status) => !isGuestMode && handleUpdateStatus(idx, status)}
-                onSaveComment={(idx, comment) => !isGuestMode && handleSaveComment(idx, comment)}
-                onAddPrayer={(text) => !isGuestMode && handleAddPrayer(text)}
-                onEditPrayer={(idx, text) => !isGuestMode && handleEditPrayer(idx, text)}
+                onUpdateStatus={handleUpdateStatus}
+                onSaveComment={handleSaveComment}
+                onAddPrayer={handleAddPrayer}
+                onEditPrayer={handleEditPrayer}
+                onSave={handleSaveAll}
+                hasUnsavedChanges={hasUnsavedChanges}
+                isSaving={isSaving}
                 isCapturing={isCapturing}
               />
             </div>
