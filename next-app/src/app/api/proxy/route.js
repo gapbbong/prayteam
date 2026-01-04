@@ -29,15 +29,9 @@ export async function POST(request) {
         const body = await request.json();
         const searchParams = new URL(request.url).searchParams;
 
-        // Ensure mode is present in query string even for POST
-        const forwardParams = new URLSearchParams(searchParams);
-        Object.keys(body).forEach(key => {
-            if (!forwardParams.has(key)) {
-                forwardParams.append(key, body[key]);
-            }
-        });
-
-        const targetUrl = `${GAS_URL}?${forwardParams.toString()}`;
+        // [FIX] Do NOT append body to URL params (avoids URI Too Long errors)
+        // GAS handles mode from JSON body (e.postData.contents)
+        const targetUrl = `${GAS_URL}?${searchParams.toString()}`;
         console.log(`[Next Proxy POST] Forwarding to: ${targetUrl}`);
 
         const response = await fetch(targetUrl, {
