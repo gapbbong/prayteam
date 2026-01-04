@@ -108,7 +108,10 @@ export default function GroupList({ groups, onSelectGroup, onAddGroup, onViewAll
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4" />
                         </svg>
                     </div>
-                    <span className="text-lg sm:text-xl font-bold text-slate-500 group-hover:text-blue-600 transition-colors whitespace-nowrap tracking-tighter">새 그룹 만들기</span>
+                    {/* Centered Text Container */}
+                    <div className="flex-1 flex justify-center">
+                        <span className="text-lg sm:text-xl font-bold text-slate-500 group-hover:text-blue-600 transition-colors whitespace-nowrap tracking-tighter">새 그룹 만들기</span>
+                    </div>
                 </button>
 
                 {/* View All Prayers Button */}
@@ -125,7 +128,8 @@ export default function GroupList({ groups, onSelectGroup, onAddGroup, onViewAll
                             <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform shadow-sm flex-shrink-0">
                                 <span className="text-2xl">📋</span>
                             </div>
-                            <div className="flex flex-col overflow-hidden">
+                            {/* Centered Text Container */}
+                            <div className="flex-1 flex flex-col justify-center items-center overflow-hidden">
                                 <span className="text-lg sm:text-xl font-black text-white drop-shadow-sm whitespace-nowrap tracking-tighter">전체 기도제목</span>
                                 <span className="text-[10px] sm:text-xs font-bold text-white/70">모든 그룹 기도</span>
                             </div>
