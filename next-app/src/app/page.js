@@ -374,7 +374,9 @@ export default function Home() {
                   newGroupPrayers[pData.멤버이름] = pData;
                 });
               }
+
               groupPrayersRef.current = newGroupPrayers;
+              setGroupPrayers(newGroupPrayers); // [NEW] MemberList 렌더링을 위해 state 업데이트
 
               // 데이터 순회 (배열이므로 forEach 사용)
               if (Array.isArray(prayersData)) {
@@ -401,9 +403,9 @@ export default function Home() {
               });
 
               // 2. 타겟 멤버가 있고 유효한 경우 해당 멤버 뷰로 이동
-              if (targetMember && prayersData[targetMember]) {
+              if (targetMember && newGroupPrayers[targetMember]) {
                 setCurrentMember(targetMember);
-                const tmData = prayersData[targetMember];
+                const tmData = newGroupPrayers[targetMember];
                 setPrayers(tmData.prayers);
                 setResponses(tmData.responses);
                 setComments(tmData.comments);
@@ -413,8 +415,8 @@ export default function Home() {
                 setCurrentView('prayers');
                 logVisit('prayer_note_direct', { groupId, member: targetMember });
               } else {
-                setCurrentView('all_prayers');
-                logVisit('guest_view', { groupId });
+                setCurrentView('members'); // [NEW] 기본적으로 멤버 목록 표시 (관리자 화면과 동일)
+                logVisit('guest_view_members', { groupId });
               }
             }
           } catch (e) {
