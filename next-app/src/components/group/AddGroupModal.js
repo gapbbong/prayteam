@@ -35,6 +35,7 @@ export default function AddGroupModal({ isOpen, onClose, onSubmit }) {
                 .map(m => m.trim())
                 .filter(m => m !== '');
 
+            console.log('Sending memberList:', memberList, 'Length:', memberList.length);
             await onSubmit(groupName.trim(), memberList);
             setGroupName('');
             setMembers(['', '']);
