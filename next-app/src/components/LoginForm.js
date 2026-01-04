@@ -38,7 +38,7 @@ export default function LoginForm() {
                 <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-2xl mb-4 animate-bounce-subtle">
                     <span className="text-4xl">🙏</span>
                 </div>
-                <h2 className="text-3xl font-black text-slate-800 tracking-tight">반갑습니다!</h2>
+                <h2 className="text-3xl font-black text-slate-800 tracking-tight">반갑습니다^^</h2>
                 <p className="text-slate-500 mt-2 font-medium">기도팀 서비스에 오신 것을 환영합니다</p>
             </div>
 
