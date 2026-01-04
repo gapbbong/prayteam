@@ -11,8 +11,8 @@ export const metadata = {
   description: "우리의 기도를 들으시고 가장 좋은 때에 응답하시는 하나님",
   manifest: "/manifest.json",
   icons: {
-    icon: '/icon.png?v=4',
-    apple: '/icon.png?v=4',
+    icon: '/icon.png?v=5',
+    apple: '/icon.png?v=5',
   },
 };
 
