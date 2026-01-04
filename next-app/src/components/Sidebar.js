@@ -1,6 +1,19 @@
 import { gasClient } from "@/lib/gasClient";
 import { useToast } from "@/context/ToastContext";
 
+const VAPID_PUBLIC_KEY = "BI18lvSQsbHQtOQq7r7E5kx_nHAC9pvHdjgN16yTd2cs38vQgbniDUiOnV6ja8OceKY9ku_q2RyC1owPsfghJeE";
+
+function urlBase64ToUint8Array(base64String) {
+    const padding = '='.repeat((4 - base64String.length % 4) % 4);
+    const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+    const rawData = window.atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
+    for (let i = 0; i < rawData.length; ++i) {
+        outputArray[i] = rawData.charCodeAt(i);
+    }
+    return outputArray;
+}
+
 export default function Sidebar({
     isOpen,
     onClose,
@@ -33,7 +46,7 @@ export default function Sidebar({
             const registration = await navigator.serviceWorker.ready;
             const subscription = await registration.pushManager.subscribe({
                 userVisibleOnly: true,
-                applicationServerKey: 'BCm.....................' // VAPID Key 필요 (임시 생략/확인 필요) - Google Apps Script에는 보통 VAPID 없이 endpoint로 보낼 수 있음
+                applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
             });
 
             await gasClient.saveSub({
