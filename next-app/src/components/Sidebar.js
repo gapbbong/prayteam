@@ -29,7 +29,9 @@ export default function Sidebar({
     onCaptureImage,
     onShareText,
     currentMember,
-    currentView
+    currentMember,
+    currentView,
+    onStatusChange // [NEW] Parent state updater
 }) {
     const { showToast } = useToast();
 
@@ -53,6 +55,10 @@ export default function Sidebar({
                 groupId: currentGroup.groupId,
                 subscription: subscription.toJSON()
             });
+
+            // [NEW] Persist State & Update UI
+            localStorage.setItem(`prayteam_noti_${currentGroup.groupId}`, 'true');
+            if (onStatusChange) onStatusChange(true);
 
             showToast('알림이 설정되었습니다!', 'success');
             onClose();

@@ -1075,6 +1075,7 @@ export default function Home() {
         onShareText={handleShareAllPrayersText}
         currentMember={currentMember}
         currentView={currentView}
+        onStatusChange={setIsCurrentGroupNotiEnabled}
       />
 
       {/* Capture Preview Modal (For Manual Save) */}
