@@ -500,7 +500,7 @@ function asyncSendNotification() {
     if (!payloadJson) return;
     
     try {
-      UrlFetchApp.fetch("https://praygroup.creat1324.com/.netlify/functions/notify", {
+      UrlFetchApp.fetch("https://praygroup.creat1324.com/api/notify", {
         method: "post",
         contentType: "application/json",
         payload: payloadJson,
