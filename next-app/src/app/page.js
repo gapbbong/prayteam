@@ -359,7 +359,7 @@ export default function Home() {
               setCurrentGroup(formattedGroup);
 
               // 데이터 로드
-              const prayersData = await gasClient.getGroupPrayers(groupId);
+              const prayersData = await gasClient.getPrayersAll(groupId);
 
               // 1. 전체 보기 데이터 설정
               const prayersList = []; const responsesList = [];
@@ -367,20 +367,32 @@ export default function Home() {
               const visibilitiesList = []; const metadataList = [];
 
               // groupPrayersRef 업데이트 (나중에 멤버 전환 시 사용)
-              groupPrayersRef.current = prayersData;
-
-              Object.keys(prayersData).forEach(member => {
-                const pData = prayersData[member];
-                pData.prayers.forEach((p, idx) => {
-                  if (pData.visibilities && pData.visibilities[idx] === false) return;
-                  prayersList.push(p);
-                  responsesList.push(pData.responses[idx]);
-                  commentsList.push(pData.comments[idx]);
-                  datesList.push(pData.dates ? pData.dates[idx] : '');
-                  visibilitiesList.push(true);
-                  metadataList.push({ member, originalIndex: idx });
+              // 배열(prayersData)을 맵으로 변환
+              const newGroupPrayers = {};
+              if (Array.isArray(prayersData)) {
+                prayersData.forEach(pData => {
+                  newGroupPrayers[pData.멤버이름] = pData;
                 });
-              });
+              }
+              groupPrayersRef.current = newGroupPrayers;
+
+              // 데이터 순회 (배열이므로 forEach 사용)
+              if (Array.isArray(prayersData)) {
+                prayersData.forEach(pData => {
+                  const member = pData.멤버이름;
+                  if (pData.prayers) {
+                    pData.prayers.forEach((p, idx) => {
+                      if (pData.visibilities && pData.visibilities[idx] === 'Hidden') return;
+                      prayersList.push(p);
+                      responsesList.push(pData.responses ? pData.responses[idx] : '');
+                      commentsList.push(pData.comments ? pData.comments[idx] : '');
+                      datesList.push(pData.dates ? pData.dates[idx] : '');
+                      visibilitiesList.push('Show');
+                      metadataList.push({ member, originalIndex: idx });
+                    });
+                  }
+                });
+              }
 
               setViewAllData({
                 prayers: prayersList, responses: responsesList,

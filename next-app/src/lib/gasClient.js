@@ -89,6 +89,10 @@ export const gasClient = {
     return this.request({ mode: 'getPrayers', groupId, member }, 'GET');
   },
 
+  getPrayersAll(groupId) {
+    return this.request({ mode: 'getPrayersAll', groupId }, 'GET');
+  },
+
   getPrayersAllGroups(groupIds) {
     // groupIds: comma separated string
     return this.request({ mode: 'getPrayersAllGroups', groupIds }, 'GET');
