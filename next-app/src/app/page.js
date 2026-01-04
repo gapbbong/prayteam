@@ -733,14 +733,15 @@ export default function Home() {
   };
 
   // ✅ New Handler: Add a new prayer
+  // ✅ New Handler: Add a new prayer & Save Immediately
   const handleAddPrayer = async (newText) => {
-    if (!newText || !newText.trim()) return;
+    if (!newText || !newText.trim()) return false;
 
     const newPrayers = [...prayers, newText];
     const newResponses = [...responses, '기대중'];
     const newComments = [...comments, ''];
     const newVisibilities = [...visibilities, ''];
-    const newDates = [...dates, ''];
+    const newDates = [...dates, '']; // Date handled by backend
 
     // Optimistic UI Update
     setPrayers(newPrayers);
@@ -749,7 +750,30 @@ export default function Home() {
     setVisibilities(newVisibilities);
     setDates(newDates);
 
-    setHasUnsavedChanges(true);
+    // Save Immediately
+    setIsSaving(true);
+    try {
+      await gasClient.savePrayer({
+        groupId: currentGroup.groupId,
+        groupName: currentGroup.name,
+        member: currentMember,
+        prayers: newPrayers,
+        responses: newResponses,
+        comments: newComments,
+        visibilities: newVisibilities
+      });
+
+      setHasUnsavedChanges(false);
+      showToast('✅ 저장되었습니다!', 'success');
+      return true;
+    } catch (error) {
+      console.error('Save failed:', error);
+      showToast('❌ 저장에 실패했습니다.', 'error');
+      setHasUnsavedChanges(true); // Revert to unsaved if failed
+      return false;
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   // ✅ New Handler: Edit existing prayer text
