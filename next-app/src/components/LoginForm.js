@@ -113,16 +113,6 @@ export default function LoginForm() {
                     </button>
                 </div>
             </form>
-
-            <div className="mt-8 text-center pt-6 border-t border-slate-100">
-                <p className="text-slate-400 text-sm font-medium">아직 회원이 아니신가요?</p>
-                <button
-                    onClick={() => router.push('/signup')}
-                    className="text-blue-600 font-bold mt-2 hover:underline"
-                >
-                    🕊️ 회원가입
-                </button>
-            </div>
         </div>
     );
 }

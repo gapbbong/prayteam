@@ -7,9 +7,13 @@ import { ToastProvider } from "@/context/ToastContext";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata = {
-  title: "🙏 기도팀 - 응답하시는 하나님",
+  title: "기도팀 - 반드시 응답하시는 하나님",
   description: "우리의 기도를 들으시고 가장 좋은 때에 응답하시는 하나님",
   manifest: "/manifest.json",
+  icons: {
+    icon: '/icon.png?v=4',
+    apple: '/icon.png?v=4',
+  },
 };
 
 import Script from "next/script";

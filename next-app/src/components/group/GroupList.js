@@ -11,16 +11,8 @@ export default function GroupList({ groups, onSelectGroup, onAddGroup, onViewAll
                 <p className="text-slate-400 dark:text-slate-500 font-bold mb-8 text-center max-w-xs leading-relaxed">
                     새로운 기도 그룹을 만들고<br />멤버들을 초대해보세요!
                 </p>
-                {/* View All Prayers & Create Group Button Container */}
+                {/* Create Group Button Container */}
                 <div className="flex flex-col gap-3 mt-8">
-                    <button
-                        onClick={onViewAll}
-                        className="w-full py-4 bg-white dark:bg-black border-2 border-slate-100 dark:border-slate-800 text-slate-600 dark:text-slate-300 rounded-2xl font-black text-lg shadow-sm hover:border-blue-400 dark:hover:border-blue-500 hover:text-blue-600 dark:hover:text-blue-400 transition-all flex items-center justify-center gap-2 group"
-                    >
-                        <span className="text-xl group-hover:scale-110 transition-transform">📋</span>
-                        전체 기도제목 보기
-                    </button>
-
                     <button
                         onClick={onAddGroup}
                         className="w-full py-4 bg-white dark:bg-black border-2 border-slate-100 dark:border-slate-800 text-slate-500 dark:text-slate-400 rounded-2xl font-black text-lg shadow-sm hover:border-blue-200 dark:hover:border-blue-700 hover:text-blue-500 dark:hover:text-blue-300 transition-all flex items-center justify-center gap-2 group italic"

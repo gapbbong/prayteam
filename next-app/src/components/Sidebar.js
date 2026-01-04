@@ -13,6 +13,7 @@ export default function Sidebar({
     onOpenNotificationSettings,
     isCurrentGroupNotiEnabled,
     onCaptureImage,
+    onShareText,
     currentMember,
     currentView
 }) {
@@ -61,24 +62,7 @@ export default function Sidebar({
 
                     {/* Menu Items */}
                     <div className="space-y-2">
-                        {/* Share Group (조건부) */}
-                        {currentGroup && !isGuestMode && (
-                            <button
-                                onClick={() => {
-                                    onShareGroup();
-                                    onClose();
-                                }}
-                                className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-white/10 transition-colors group"
-                            >
-                                <span className="text-2xl group-hover:scale-110 transition-transform">📤</span>
-                                <div className="flex-1 text-left">
-                                    <span className="font-bold text-slate-700 dark:text-slate-100 block">그룹 공유</span>
-                                    <span className="text-xs text-slate-400 dark:text-slate-500">{currentGroup.name}</span>
-                                </div>
-                            </button>
-                        )}
-
-                        {/* Notification Settings (조건부) */}
+                        {/* 1. Notification Settings (조건부) */}
                         {currentGroup && !isGuestMode && (
                             <button
                                 onClick={() => {
@@ -99,7 +83,57 @@ export default function Sidebar({
                             </button>
                         )}
 
-                        {/* Dark Mode Toggle */}
+                        {/* 2. Share Group (조건부) */}
+                        {currentGroup && !isGuestMode && currentView !== 'groups' && (
+                            <button
+                                onClick={() => {
+                                    onShareGroup();
+                                    onClose();
+                                }}
+                                className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-white/10 transition-colors group"
+                            >
+                                <span className="text-2xl group-hover:scale-110 transition-transform">📤</span>
+                                <div className="flex-1 text-left">
+                                    <span className="font-bold text-slate-700 dark:text-slate-100 block">그룹 링크 공유</span>
+                                    <span className="text-xs text-slate-400 dark:text-slate-500">{currentGroup.name}</span>
+                                </div>
+                            </button>
+                        )}
+
+                        {/* 3. Image Capture (조건부) */}
+                        {currentView !== 'groups' && (
+                            <button
+                                onClick={() => {
+                                    onCaptureImage();
+                                    onClose();
+                                }}
+                                className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-white/10 transition-colors group"
+                            >
+                                <span className="text-2xl group-hover:scale-110 transition-transform">📸</span>
+                                <div className="flex-1 text-left">
+                                    <span className="font-bold text-slate-700 dark:text-slate-100 block">이미지로 공유</span>
+                                    <span className="text-xs text-slate-400 dark:text-slate-500">모두의 기도제목 갤러리에 저장</span>
+                                </div>
+                            </button>
+                        )}
+
+                        {/* 4. Share Text (조건부) */}
+                        {currentView !== 'groups' && (
+                            <button
+                                onClick={() => {
+                                    onShareText();
+                                    onClose();
+                                }}
+                                className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-white/10 transition-colors group"
+                            >
+                                <span className="text-2xl group-hover:scale-110 transition-transform">📝</span>
+                                <div className="flex-1 text-left">
+                                    <span className="font-bold text-slate-700 dark:text-slate-100 block">전체 텍스트 공유</span>
+                                </div>
+                            </button>
+                        )}
+
+                        {/* 5. Dark Mode Toggle */}
                         <button
                             onClick={onToggleDarkMode}
                             className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-white/10 transition-colors group"
@@ -110,21 +144,6 @@ export default function Sidebar({
                             <span className="font-bold text-slate-700 dark:text-slate-100">
                                 {isDarkMode ? '라이트 모드' : '다크 모드'}
                             </span>
-                        </button>
-
-                        {/* Image Capture (항상 노출, 클릭 시 내부 로직으로 제어) */}
-                        <button
-                            onClick={() => {
-                                onCaptureImage();
-                                onClose();
-                            }}
-                            className="w-full flex items-center gap-3 p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-white/10 transition-colors group"
-                        >
-                            <span className="text-2xl group-hover:scale-110 transition-transform">📸</span>
-                            <div className="flex-1 text-left">
-                                <span className="font-bold text-slate-700 dark:text-slate-100 block">이미지로 공유</span>
-                                <span className="text-xs text-slate-400 dark:text-slate-500">기도 노트 저장</span>
-                            </div>
                         </button>
 
                     </div>

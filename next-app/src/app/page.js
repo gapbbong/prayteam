@@ -464,6 +464,88 @@ export default function Home() {
     });
   }, [currentGroup, currentView, currentMember, showToast]);
 
+  // ✅ Helper: Robust Copy to Clipboard
+  const copyToClipboard = useCallback((text, successMsg) => {
+    // 1. Try Navigator API first
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(text)
+        .then(() => showToast(successMsg, 'success'))
+        .catch(() => fallbackCopy(text, successMsg));
+    } else {
+      fallbackCopy(text, successMsg);
+    }
+
+    function fallbackCopy(textToCopy, msg) {
+      try {
+        const textArea = document.createElement("textarea");
+        textArea.value = textToCopy;
+
+        // Ensure textarea is not visible but part of DOM
+        textArea.style.position = "fixed";
+        textArea.style.left = "-9999px";
+        textArea.style.top = "0";
+        document.body.appendChild(textArea);
+
+        textArea.focus();
+        textArea.select();
+
+        const successful = document.execCommand('copy');
+        document.body.removeChild(textArea);
+
+        if (successful) {
+          showToast(msg, 'success');
+        } else {
+          showToast('텍스트 복사에 실패했습니다.', 'error');
+        }
+      } catch (err) {
+        showToast('텍스트 복사 중 오류가 발생했습니다.', 'error');
+      }
+    }
+  }, [showToast]);
+
+  // ✅ New Handler: Share all prayers as one text string
+  const handleShareAllPrayersText = useCallback(() => {
+    if (!currentGroup) {
+      showToast('선택된 그룹이 없습니다.', 'error');
+      return;
+    }
+
+    const members = currentGroup.members || [];
+    if (members.length === 0) {
+      showToast('공유할 멤버가 없습니다.', 'info');
+      return;
+    }
+
+    let text = `🙏 [${currentGroup.name}] 기도제목\n\n`;
+    let hasData = false;
+
+    members.forEach(member => {
+      const data = groupPrayers[member];
+      if (data && data.prayers && data.prayers.length > 0) {
+        hasData = true;
+        text += `[${member}]\n`;
+        data.prayers.forEach((p, idx) => {
+          if (data.visibilities && data.visibilities[idx] === 'Hidden') return;
+          text += `- ${p}\n`;
+        });
+        text += `\n`;
+      }
+    });
+
+    if (!hasData) {
+      showToast('불러온 기도제목이 없습니다. 먼저 멤버들을 클릭하여 내용을 확인해주세요.', 'info');
+      return;
+    }
+
+    text += `✨ 우리 기도를 반드시 응답하시는 하나님을 찬양합니다.\n`;
+    text += `https://praygroup.creat1324.com`;
+
+    const successMsg = '클립보드에 복사되었습니다. 단톡방에 붙여넣어주세요';
+
+    // Always use clipboard as requested by user
+    copyToClipboard(text, successMsg);
+  }, [currentGroup, groupPrayers, showToast, copyToClipboard]);
+
   const handleBack = useCallback(() => {
     window.history.back();
   }, []);
@@ -840,14 +922,27 @@ export default function Home() {
 
   if (!user && !isGuestMode) {
     return (
-      <main className="container mx-auto px-4 py-12 min-h-screen flex flex-col items-center">
-        <header className="text-center mb-12 space-y-2">
+      <main className="container mx-auto px-4 min-h-[100dvh] flex flex-col justify-between py-10">
+        <header className="text-center space-y-2 pt-8">
           <h1 className="text-5xl font-black text-slate-900 tracking-tighter">
             PRAY <span className="text-blue-600">TEAM</span>
           </h1>
           <p className="text-slate-500 font-bold text-lg italic">반드시 응답하시는 하나님</p>
         </header>
-        <LoginForm />
+
+        <div className="w-full flex justify-center my-6">
+          <LoginForm />
+        </div>
+
+        <div className="text-center pb-6">
+          <p className="text-slate-400 text-sm font-medium">아직 회원이 아니신가요?</p>
+          <button
+            onClick={() => window.location.href = '/signup'}
+            className="text-blue-600 font-bold mt-2 text-lg hover:underline animate-pulse"
+          >
+            🕊️ 회원가입 하러가기
+          </button>
+        </div>
       </main>
     );
   }
@@ -993,6 +1088,7 @@ export default function Home() {
         onOpenNotificationSettings={() => setIsNotificationModalOpen(true)}
         isCurrentGroupNotiEnabled={isCurrentGroupNotiEnabled}
         onCaptureImage={captureAsImage}
+        onShareText={handleShareAllPrayersText}
         currentMember={currentMember}
         currentView={currentView}
       />
