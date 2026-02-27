@@ -125,6 +125,7 @@ export default function PrayerNote({
 
     const handleArchive = (index) => {
         onUpdateStatus(index, '보관됨');
+        setExpandedIndex(null); // Close the item so it disappears from active view
     };
 
     const handleRestore = (index) => {

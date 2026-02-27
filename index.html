@@ -592,7 +592,7 @@
     <div class="title-bar">
       <h2>📋 내 그룹 관리</h2>
       <div style="display: flex; flex-direction: column; align-items: flex-end;">
-        <span style="font-size: 10px; color: #666; margin-bottom: 2px;">v0.5.5</span>
+        <span style="font-size: 10px; color: #666; margin-bottom: 2px;">v0.5.6</span>
         <button id="logoutBtn" onclick="logout()">로그아웃</button>
       </div>
     </div>
@@ -729,7 +729,7 @@
     /* 📌 LOAD 이벤트 (1개만) */
     /* ========================================================================= */
     window.addEventListener("load", async () => {
-      
+
       /* ------------------ 🔗 공유 링크 리다이렉트 체크 ------------------ */
       const hash = window.location.hash;
       if (hash && hash.startsWith("#members")) {
@@ -739,7 +739,7 @@
           if (queryPart) {
             const params = new URLSearchParams(queryPart);
             const gid = params.get("groupId");
-            
+
             if (gid) {
               // 🚀 발견 즉시 이동 (로그인 체크 건너뜀)
               const overlay = document.getElementById("loadingOverlay");

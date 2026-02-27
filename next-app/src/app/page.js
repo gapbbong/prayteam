@@ -715,21 +715,57 @@ export default function Home() {
   // Status & Comment Updaters
   const handleUpdateStatus = async (index, status, visibility) => {
     // 1. Update Responses State
+    let newResponses = responses;
     if (status !== undefined) {
-      const newResponses = [...responses];
+      newResponses = [...responses];
       newResponses[index] = status;
       setResponses(newResponses);
     }
 
     // 2. Update Visibility State
+    let newVisibilities = visibilities;
     if (visibility !== undefined) {
-      const newVisibilities = [...visibilities];
+      newVisibilities = [...visibilities];
       newVisibilities[index] = visibility;
       setVisibilities(newVisibilities);
     }
 
+    // [Fix] Update Parent State (groupPrayers) for MemberList synchronization
+    setGroupPrayers(prev => {
+      const next = { ...prev };
+      next[currentMember] = {
+        ...next[currentMember],
+        responses: newResponses,
+        visibilities: newVisibilities
+      };
+      groupPrayersRef.current = next; // Sync Ref
+      return next;
+    });
+
     // Mark as unsaved
     setHasUnsavedChanges(true);
+
+    // [Policy] Save immediately when archiving or restoring for best UX
+    if (status === '보관됨' || status === '기대중') {
+      setIsSaving(true);
+      try {
+        await gasClient.savePrayer({
+          groupId: currentGroup.groupId,
+          groupName: currentGroup.name,
+          member: currentMember,
+          prayers: prayers,
+          responses: newResponses,
+          comments: comments,
+          visibilities: newVisibilities
+        });
+        setHasUnsavedChanges(false);
+      } catch (error) {
+        console.error('Auto save on status update failed:', error);
+        showToast('❌ 실시간 저장에 실패했습니다. (나중에 수동 저장 가능)', 'error');
+      } finally {
+        setIsSaving(false);
+      }
+    }
   };
 
   // ✅ New Handler: Add a new prayer
