@@ -1,14 +1,9 @@
-functionsDirectory = "D:\\App\\Test Pray\\netlify\\functions"
-functionsDirectoryOrigin = "config-v1"
-redirectsOrigin = "config"
-headersOrigin = "config"
-plugins = []
-headers = []
+functionsDirectory = "netlify/functions"
 
 [build]
-publish = "D:\\App\\Test Pray"
-publishOrigin = "config"
-functions = "D:\\App\\Test Pray\\netlify\\functions"
+publish = "."
+functions = "netlify/functions"
+
 
   [build.environment]
 
