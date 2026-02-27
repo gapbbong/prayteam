@@ -175,6 +175,7 @@ export default function Home() {
         }
       });
       await Promise.all(fetchPromises);
+      groupPrayersRef.current = dataMap; // [ADD] Sync ref for member selection
       setGroupPrayers(dataMap);
       window.history.pushState({ view: 'members', group }, '', '#members');
     } catch (error) {
@@ -235,7 +236,10 @@ export default function Home() {
             const data = dataLookup[group.groupId] ? dataLookup[group.groupId][member] : null;
             if (data && data.prayers && data.prayers.length > 0) {
               data.prayers.forEach((prayer, pIdx) => {
-                if (data.visibilities && data.visibilities[pIdx] === 'Hidden') return;
+                const response = data.responses ? data.responses[pIdx] : '';
+                const visibility = data.visibilities ? data.visibilities[pIdx] : 'Show';
+                if (response === '보관됨' || response === '숨김' || visibility === 'Hidden') return;
+
                 prayersList.push(prayer);
                 responsesList.push(data.responses ? data.responses[pIdx] : '');
                 commentsList.push(data.comments ? data.comments[pIdx] : '');

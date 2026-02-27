@@ -26,8 +26,12 @@ export default function MemberList({ members = [], groupPrayers = {}, groupName 
             <div className="grid gap-6">
                 {members.map((member) => {
                     const memberData = groupPrayers[member] || { prayers: [], responses: [] };
-                    // Filter active prayers (not archived)
-                    const activePrayers = memberData.prayers.filter((_, idx) => memberData.responses[idx] !== '보관됨');
+                    // Filter active prayers (not archived/hidden)
+                    const activePrayers = memberData.prayers.filter((_, idx) => {
+                        const response = memberData.responses?.[idx];
+                        const visibility = memberData.visibilities?.[idx];
+                        return response !== '보관됨' && response !== '숨김' && visibility !== 'Hidden';
+                    });
 
                     return (
                         <div
@@ -69,7 +73,11 @@ export default function MemberList({ members = [], groupPrayers = {}, groupName 
                                         <span className="text-[10px] font-bold text-slate-400 bg-slate-50 px-2 py-0.5 rounded-md border border-slate-100">
                                             {getRelativeTime(
                                                 [...memberData.dates]
-                                                    .filter((_, i) => memberData.responses[i] !== '보관됨')
+                                                    .filter((_, i) => {
+                                                        const response = memberData.responses?.[i];
+                                                        const visibility = memberData.visibilities?.[i];
+                                                        return response !== '보관됨' && response !== '숨김' && visibility !== 'Hidden';
+                                                    })
                                                     .reverse()[0]
                                             )}
                                         </span>
