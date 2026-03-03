@@ -661,20 +661,29 @@ export default function PrayerNote({
             {/* Add New Prayer Input - Hide in View All mode or Read Only mode */}
             {!metadata && !isReadOnly && !isCapturing && (
                 <div className="mt-8 pt-6 border-t border-slate-100 dark:border-slate-700 space-y-4">
-                    <div className="flex gap-3 items-center bg-slate-50 dark:bg-slate-800 p-3 rounded-[2rem] border border-slate-200 dark:border-slate-700 focus-within:border-blue-400 dark:focus-within:border-blue-500 focus-within:ring-4 focus-within:ring-blue-50 dark:focus-within:ring-blue-900/50 transition-all shadow-inner">
-                        <span className="pl-2 text-2xl">✨</span>
-                        <input
-                            type="text"
+                    <div className="flex gap-3 items-start bg-slate-50 dark:bg-slate-800 p-3 rounded-[2rem] border border-slate-200 dark:border-slate-700 focus-within:border-blue-400 dark:focus-within:border-blue-500 focus-within:ring-4 focus-within:ring-blue-50 dark:focus-within:ring-blue-900/50 transition-all shadow-inner">
+                        <span className="pl-2 pt-2 text-2xl">✨</span>
+                        <textarea
                             value={newPrayerText}
-                            onChange={(e) => setNewPrayerText(e.target.value)}
-                            onKeyDown={(e) => e.key === 'Enter' && handleAddSubmit()}
+                            onChange={(e) => {
+                                setNewPrayerText(e.target.value);
+                                e.target.style.height = 'auto';
+                                e.target.style.height = e.target.scrollHeight + 'px';
+                            }}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter' && !e.shiftKey) {
+                                    e.preventDefault();
+                                    handleAddSubmit();
+                                }
+                            }}
                             placeholder="새로운 기도를 여기에 입력하세요..."
-                            className="flex-1 bg-transparent border-none outline-none text-base md:text-lg font-black text-slate-800 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 py-2"
+                            className="flex-1 bg-transparent border-none outline-none text-base md:text-lg font-black text-slate-800 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 py-2 resize-none overflow-hidden"
+                            rows={1}
                         />
                         <button
                             onClick={handleAddSubmit}
                             disabled={!newPrayerText.trim() || isAdding}
-                            className={`px-6 py-2 rounded-2xl font-black text-white shadow-lg transition-all active:scale-95 flex items-center gap-2 whitespace-nowrap
+                            className={`px-6 py-2 mt-1 rounded-2xl font-black text-white shadow-lg transition-all active:scale-95 flex items-center gap-2 whitespace-nowrap
                                 ${!newPrayerText.trim()
                                     ? 'bg-slate-200 dark:bg-slate-700 text-slate-400 dark:text-slate-500 cursor-not-allowed'
                                     : addStatus === 'saved'

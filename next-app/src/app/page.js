@@ -13,6 +13,7 @@ import MemberList from '@/components/group/MemberList';
 import AddGroupModal from '@/components/group/AddGroupModal';
 import NotificationSettingsModal from '@/components/NotificationSettingsModal';
 import Sidebar from '@/components/Sidebar';
+import MemberActionModal from '@/components/group/MemberActionModal';
 // import html2canvas from 'html2canvas'; // 동적 import로 변경
 
 export default function Home() {
@@ -62,6 +63,7 @@ export default function Home() {
   const [isCapturing, setIsCapturing] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [memberAction, setMemberAction] = useState({ isOpen: false });
 
   // [추가] 다크모드 초기화 로직 (새로고침 시 적용 보장)
   useEffect(() => {
@@ -127,11 +129,18 @@ export default function Home() {
     try {
       const res = await gasClient.getGroups(user.adminId || user.id);
       const groupList = res.groups ? res.groups : (Array.isArray(res) ? res : []);
-      const formattedGroups = groupList.map(g => ({
-        groupId: g.그룹ID || g.groupId,
-        name: g.그룹명 || g.name,
-        members: g.구성원목록 || g.members || []
-      }));
+      const formattedGroups = groupList.map(g => {
+        const membersRaw = g.구성원목록 || g.members || [];
+        const membersArray = Array.isArray(membersRaw)
+          ? membersRaw
+          : (typeof membersRaw === 'string' ? membersRaw.split(',').map(m => m.trim()).filter(Boolean) : []);
+
+        return {
+          groupId: g.그룹ID || g.groupId,
+          name: g.그룹명 || g.name,
+          members: membersArray
+        };
+      });
       setGroups(formattedGroups);
     } catch (error) {
       console.error('Failed to load groups:', error);
@@ -354,10 +363,15 @@ export default function Home() {
           try {
             const res = await gasClient.getGroupById(groupId);
             if (res.group) {
+              const membersRaw = res.group.구성원목록 || [];
+              const membersArray = Array.isArray(membersRaw)
+                ? membersRaw
+                : (typeof membersRaw === 'string' ? membersRaw.split(',').map(m => m.trim()).filter(Boolean) : []);
+
               const formattedGroup = {
                 groupId: res.group.그룹ID,
                 name: res.group.그룹명,
-                members: res.group.구성원목록
+                members: membersArray
               };
               setIsGuestMode(true);
               setCurrentGroup(formattedGroup);
@@ -715,6 +729,110 @@ export default function Home() {
   }, [currentView, groups, handleViewAllPrayers, handleSelectGroup]);
   // Run once on mount
 
+
+  // ✅ New Handler: Add a member to current group
+  const handleAddMemberToGroup = useCallback(() => {
+    setMemberAction({
+      isOpen: true,
+      type: 'add',
+      title: '새 멤버 추가',
+      description: '함께 기도제목을 나눌 새로운 멤버의 이름을 입력해 주세요.',
+      placeholder: '멤버 이름 (예: 홍길동)',
+      showInput: true,
+      icon: '👥',
+      onSubmit: async (name) => {
+        try {
+          const result = await gasClient.addMember(currentGroup.groupId, name);
+          if (result && result.success) {
+            // 1. Optimistic UI Update: Update currentGroup & groups immediately
+            const updatedMembers = [...(currentGroup.members || []), name];
+            const updatedGroup = { ...currentGroup, members: updatedMembers };
+
+            setCurrentGroup(updatedGroup);
+            setGroups(prev => prev.map(g => g.groupId === updatedGroup.groupId ? updatedGroup : g));
+
+            // 2. Initialize empty prayer data for new member
+            setGroupPrayers(prev => {
+              const next = {
+                ...prev,
+                [name]: { prayers: [], responses: [], comments: [], dates: [], visibilities: [], indices: [] }
+              };
+              groupPrayersRef.current = next;
+              return next;
+            });
+
+            showToast(`${name}님이 성공적으로 추가되었습니다.`, 'success');
+
+            // 3. Final Sync (Background): Get full group info to ensure everything is in sync
+            // No need to await here, let it happen in background
+            gasClient.getGroupById(currentGroup.groupId).then(res => {
+              if (res && res.group) {
+                const membersRaw = res.group.구성원목록 || [];
+                const membersArray = Array.isArray(membersRaw)
+                  ? membersRaw
+                  : (typeof membersRaw === 'string' ? membersRaw.split(/[,|\n]/).map(m => m.trim()).filter(Boolean) : []);
+
+                setCurrentGroup(prev => ({
+                  ...prev,
+                  members: membersArray
+                }));
+              }
+            }).catch(err => console.warn('Background sync failed:', err));
+
+          } else {
+            throw new Error(result?.message || '멤버 추가에 실패했습니다.');
+          }
+        } catch (e) {
+          showToast(e.message, 'error');
+          throw e; // Modal stays open if error
+        }
+      }
+    });
+  }, [currentGroup, showToast]);
+
+  // ✅ New Handler: Archive entire member (Hidden from list)
+  const handleArchiveMember = useCallback((member) => {
+    setMemberAction({
+      isOpen: true,
+      type: 'archive',
+      title: `${member}님 보관 처리`,
+      description: `${member}님과 해당 기도제목을 모두 보관함으로 이동하시겠습니까? (목록에서 숨김 처리됩니다)`,
+      confirmText: '보관함으로 이동',
+      showInput: false,
+      icon: '📦',
+      onSubmit: async () => {
+        try {
+          const data = groupPrayers[member];
+          if (!data) return;
+          const newResponses = data.prayers.map(() => '보관됨');
+          const payload = {
+            groupId: currentGroup.groupId,
+            groupName: currentGroup.name,
+            member: member,
+            prayers: data.prayers,
+            responses: newResponses,
+            comments: data.comments,
+            visibilities: data.visibilities || []
+          };
+          const result = await gasClient.savePrayer(payload);
+          if (result && result.success) {
+            showToast(`${member}님과 모든 기도제목이 보관됨 처리되었습니다.`, 'success');
+            setGroupPrayers(prev => {
+              const next = { ...prev };
+              next[member] = { ...next[member], responses: newResponses };
+              groupPrayersRef.current = next;
+              return next;
+            });
+          } else {
+            throw new Error(result?.message || '보관 처리에 실패했습니다.');
+          }
+        } catch (error) {
+          showToast('보관 처리에 실패했습니다.', 'error');
+          throw error;
+        }
+      }
+    });
+  }, [currentGroup, groupPrayers, showToast]);
 
   // Status & Comment Updaters
   const handleUpdateStatus = async (index, status, visibility) => {
@@ -1095,6 +1213,8 @@ export default function Home() {
                 groupName={currentGroup.name}
                 onSelectMember={handleSelectMember}
                 onBack={handleBack}
+                onAddMember={handleAddMemberToGroup}
+                onArchiveMember={handleArchiveMember}
               />
             </div>
           )}
@@ -1203,6 +1323,12 @@ export default function Home() {
           </div>
         </div>
       )}
+
+      <MemberActionModal
+        isOpen={memberAction.isOpen}
+        onClose={() => setMemberAction({ ...memberAction, isOpen: false })}
+        {...memberAction}
+      />
     </main>
   );
 }
