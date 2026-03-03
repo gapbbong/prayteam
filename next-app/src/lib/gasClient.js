@@ -81,7 +81,7 @@ export const gasClient = {
   },
 
   async addMember(groupId, memberName) {
-    return this.request({ mode: 'addMember', groupId, memberName });
+    return this.request({ mode: 'addMember', groupId, newMember: memberName });
   },
 
   // Prayers

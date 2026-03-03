@@ -17,11 +17,13 @@ export default function MemberActionModal({
 }) {
     const [inputValue, setInputValue] = useState(initialValue);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [error, setError] = useState(null);
 
     useEffect(() => {
         if (isOpen) {
             setInputValue(initialValue);
             setIsSubmitting(false);
+            setError(null);
         }
     }, [isOpen, initialValue]);
 
@@ -30,14 +32,21 @@ export default function MemberActionModal({
         if (showInput && !inputValue.trim()) return;
 
         setIsSubmitting(true);
+        setError(null);
         try {
             await onSubmit(showInput ? inputValue.trim() : true);
             onClose();
-        } catch (error) {
-            console.error('Action failed:', error);
+        } catch (err) {
+            console.error('Action failed:', err);
+            setError(err.message || '요청 처리에 실패했습니다. 다시 시도해 주세요.');
         } finally {
             setIsSubmitting(false);
         }
+    };
+
+    const handleInputChange = (e) => {
+        setInputValue(e.target.value);
+        if (error) setError(null);
     };
 
     if (!isOpen) return null;
@@ -68,17 +77,24 @@ export default function MemberActionModal({
                 {/* Form */}
                 <form onSubmit={handleSubmit} className="space-y-6">
                     {showInput && (
-                        <div className="relative group">
-                            <input
-                                autoFocus
-                                type="text"
-                                value={inputValue}
-                                onChange={(e) => setInputValue(e.target.value)}
-                                placeholder={placeholder}
-                                className="w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 rounded-2xl text-lg font-bold text-slate-800 dark:text-white focus:border-blue-500 dark:focus:border-blue-400 focus:outline-none transition-all placeholder:text-slate-300 dark:placeholder:text-slate-600"
-                                disabled={isSubmitting}
-                            />
-                            <div className="absolute inset-0 rounded-2xl bg-blue-500/5 opacity-0 group-focus-within:opacity-100 pointer-events-none transition-opacity" />
+                        <div className="space-y-2">
+                            <div className="relative group">
+                                <input
+                                    autoFocus
+                                    type="text"
+                                    value={inputValue}
+                                    onChange={handleInputChange}
+                                    placeholder={placeholder}
+                                    className={`w-full px-6 py-4 bg-slate-50 dark:bg-slate-800 border-2 ${error ? 'border-red-500 dark:border-red-500' : 'border-slate-100 dark:border-slate-700'} rounded-2xl text-lg font-bold text-slate-800 dark:text-white focus:outline-none transition-all placeholder:text-slate-300 dark:placeholder:text-slate-600 ${!error && 'focus:border-blue-500 dark:focus:border-blue-400'}`}
+                                    disabled={isSubmitting}
+                                />
+                                <div className="absolute inset-0 rounded-2xl bg-blue-500/5 opacity-0 group-focus-within:opacity-100 pointer-events-none transition-opacity" />
+                            </div>
+                            {error && (
+                                <p className="text-red-500 text-sm font-bold px-2 animate-in fade-in slide-in-from-top-1 duration-200">
+                                    ⚠️ {error}
+                                </p>
+                            )}
                         </div>
                     )}
 
