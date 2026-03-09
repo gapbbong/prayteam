@@ -12,10 +12,19 @@
   --foreground: #f8fafc;
 }
 
+html,
+body {
+  min-height: 100%;
+  min-height: -webkit-fill-available;
+  -webkit-overflow-scrolling: touch;
+}
+
 body {
   color: var(--foreground);
   background: var(--background);
   transition: background-color 0.3s ease, color 0.3s ease;
+  overflow-x: hidden;
+  position: relative;
 }
 
 /* Light mode gradient background */

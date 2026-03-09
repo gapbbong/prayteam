@@ -92,13 +92,19 @@ export default function MemberList({
                             key={member}
                             onPointerDown={() => handleTouchStart(member)}
                             onPointerUp={() => handleTouchEnd(member)}
+                            onPointerMove={() => {
+                                if (longPressTimer.current) {
+                                    clearTimeout(longPressTimer.current);
+                                    longPressTimer.current = null;
+                                }
+                            }}
                             onPointerCancel={() => {
                                 if (longPressTimer.current) {
                                     clearTimeout(longPressTimer.current);
                                     longPressTimer.current = null;
                                 }
                             }}
-                            className="bg-white dark:bg-black rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all cursor-pointer group select-none touch-none"
+                            className="bg-white dark:bg-black rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm hover:shadow-lg hover:-translate-y-0.5 transition-all cursor-pointer group select-none"
                         >
                             <div className="px-5 pt-4 pb-1 flex items-center justify-between border-b border-slate-50 dark:border-slate-900 bg-slate-50/50 dark:bg-slate-900/50 rounded-t-3xl">
                                 <div className="flex items-center gap-3">

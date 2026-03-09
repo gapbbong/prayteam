@@ -1143,7 +1143,7 @@ export default function Home() {
   }
 
   return (
-    <main className="container mx-auto px-4 py-8 min-h-screen bg-transparent dark:bg-black">
+    <main className="w-full max-w-4xl mx-auto px-4 py-8 min-h-[100dvh] bg-transparent dark:bg-black">
       {/* Global Header */}
       <div className="relative flex items-center justify-between mb-0.5 px-1 h-10">
         {/* Left: Back Button */}
