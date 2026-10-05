@@ -131,7 +131,7 @@ export default function GroupList({ groups, onSelectGroup, onAddGroup, onViewAll
                             {/* Centered Text Container */}
                             <div className="flex-1 flex flex-col justify-center items-center overflow-hidden">
                                 <span className="text-lg sm:text-xl font-black text-white drop-shadow-sm whitespace-nowrap tracking-tighter">전체 기도제목</span>
-                                <span className="text-[10px] sm:text-xs font-bold text-white/70">모든 그룹 기도</span>
+                                <span className="text-sm md:text-xs font-bold text-white/70">모든 그룹 기도</span>
                             </div>
                         </div>
                     </button>
