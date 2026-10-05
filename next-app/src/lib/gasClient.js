@@ -109,17 +109,17 @@ export const gasClient = {
   },
 
   // Prayers
-  getPrayers(groupId, member) {
-    return this.request({ mode: 'getPrayers', groupId, member }, 'GET');
+  getPrayers(groupId, member, timeoutMs) {
+    return this.request({ mode: 'getPrayers', groupId, member }, 'GET', timeoutMs);
   },
 
-  getPrayersAll(groupId) {
-    return this.request({ mode: 'getPrayersAll', groupId }, 'GET');
+  getPrayersAll(groupId, timeoutMs = 60000) {
+    return this.request({ mode: 'getPrayersAll', groupId }, 'GET', timeoutMs);
   },
 
-  getPrayersAllGroups(groupIds) {
+  getPrayersAllGroups(groupIds, timeoutMs = 60000) {
     // groupIds: comma separated string
-    return this.request({ mode: 'getPrayersAllGroups', groupIds }, 'GET');
+    return this.request({ mode: 'getPrayersAllGroups', groupIds }, 'GET', timeoutMs);
   },
 
   savePrayer(data) {

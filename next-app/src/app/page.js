@@ -187,6 +187,78 @@ export default function Home() {
     showToast(`그룹 목록을 불러오지 못했습니다: ${lastError?.message || '네트워크 확인 후 새로고침해주세요'}`, 'error');
   }, [user?.id, user?.adminId, showToast]);
 
+  // [SWR] 그룹 기도 데이터 세션 캐시 (10분): 재방문 시 즉시 표시 후 백그라운드 갱신
+  const groupCacheRef = useRef({});
+  const GROUP_CACHE_TTL_MS = 10 * 60 * 1000;
+
+  // 그룹 전체 기도 로딩: 벌크 1회 → 45초 초과/실패 시 멤버별 병렬 폴백
+  const fetchGroupDataMap = useCallback(async (group) => {
+    const withTimeout = (p, ms) => Promise.race([
+      p,
+      new Promise((_, reject) => setTimeout(() => reject(new Error('bulk timeout')), ms))
+    ]);
+    const buildMapFromBulk = (bulkData) => {
+      const dataMap = {};
+      const lookup = {};
+      if (Array.isArray(bulkData)) {
+        bulkData.forEach(item => {
+          if (item && item.멤버이름) lookup[item.멤버이름] = item;
+        });
+      }
+      group.members.forEach((member) => {
+        const data = lookup[member];
+        if (data) {
+          const commonTime = data.작성시간 || data.time || '';
+          const dates = (data.dates || []).map(d => d && String(d).trim() !== '' ? d : commonTime);
+          const prayers = data.prayers ? data.prayers.filter(p => p && String(p).trim() !== '') : [];
+          dataMap[member] = {
+            prayers,
+            responses: data.responses || [],
+            comments: data.comments || [],
+            dates: dates,
+            visibilities: data.visibilities || [],
+            indices: data.indices || prayers.map((_, i) => i + 1)
+          };
+        } else {
+          dataMap[member] = { prayers: [], responses: [], comments: [], dates: [], visibilities: [], indices: [] };
+        }
+      });
+      return dataMap;
+    };
+    try {
+      const bulkData = await withTimeout(gasClient.getPrayersAll(group.groupId, 60000), 45000);
+      return buildMapFromBulk(bulkData);
+    } catch (bulkErr) {
+      console.warn('Bulk load failed, fallback to per-member:', bulkErr?.message);
+      const dataMap = {};
+      const fetchPromises = group.members.map(async (member) => {
+        try {
+          const data = await gasClient.getPrayers(group.groupId, member);
+          if (data) {
+            const commonTime = data.time || '';
+            const dates = (data.dates || []).map(d => d && String(d).trim() !== '' ? d : commonTime);
+            const prayers = data.prayers ? data.prayers.filter(p => p && String(p).trim() !== '') : [];
+            dataMap[member] = {
+              prayers,
+              responses: data.responses || [],
+              comments: data.comments || [],
+              dates: dates,
+              visibilities: data.visibilities || [],
+              indices: data.indices || []
+            };
+          } else {
+            dataMap[member] = { prayers: [], responses: [], comments: [], dates: [], visibilities: [], indices: [] };
+          }
+        } catch (e) {
+          console.error(`Failed to fetch for ${member}`, e);
+          dataMap[member] = { prayers: [], responses: [], comments: [], dates: [], visibilities: [], indices: [] };
+        }
+      });
+      await Promise.all(fetchPromises);
+      return dataMap;
+    }
+  }, []);
+
   const handleSelectGroup = useCallback(async (group) => {
     // 그룹명을 먼저 설정하여 로딩 중에도 헤더에 즉시 표시
     setCurrentGroup(group);
@@ -198,83 +270,34 @@ export default function Home() {
     logVisit('member_list', { groupId: group.groupId });
 
     setCurrentView('members'); // 뷰도 먼저 전환하여 헤더가 그룹명을 표시하도록 함
+    window.history.pushState({ view: 'members', group }, '', '#members');
+
+    // [SWR 캐시] 10분 내 조회한 그룹은 즉시 표시 후 백그라운드 갱신
+    const cached = groupCacheRef.current[group.groupId];
+    if (cached && Date.now() - cached.at < GROUP_CACHE_TTL_MS) {
+      groupPrayersRef.current = cached.dataMap;
+      setGroupPrayers(cached.dataMap);
+      fetchGroupDataMap(group).then((fresh) => {
+        groupCacheRef.current[group.groupId] = { at: Date.now(), dataMap: fresh };
+        groupPrayersRef.current = fresh;
+        setGroupPrayers(fresh);
+      }).catch((e) => console.warn('Background refresh failed:', e?.message || e));
+      return;
+    }
+
     setIsLoading(true);
     try {
-      // [FIX] 멤버별 getPrayers N연타 대신 getPrayersAll 1회로 벌크 로딩 (GAS 콜드스타트 N번 회피)
-      // 벌크가 25초 안에 안 오면(대용량 시트 등) 기존 멤버별 병렬 조회로 폴백
-      const withTimeout = (p, ms) => Promise.race([
-        p,
-        new Promise((_, reject) => setTimeout(() => reject(new Error('bulk timeout')), ms))
-      ]);
-      const buildMapFromBulk = (bulkData) => {
-        const dataMap = {};
-        const lookup = {};
-        if (Array.isArray(bulkData)) {
-          bulkData.forEach(item => {
-            if (item && item.멤버이름) lookup[item.멤버이름] = item;
-          });
-        }
-        group.members.forEach((member) => {
-          const data = lookup[member];
-          if (data) {
-            const commonTime = data.작성시간 || data.time || '';
-            const dates = (data.dates || []).map(d => d && String(d).trim() !== '' ? d : commonTime);
-            const prayers = data.prayers ? data.prayers.filter(p => p && String(p).trim() !== '') : [];
-            dataMap[member] = {
-              prayers,
-              responses: data.responses || [],
-              comments: data.comments || [],
-              dates: dates,
-              visibilities: data.visibilities || [],
-              indices: data.indices || prayers.map((_, i) => i + 1)
-            };
-          } else {
-            dataMap[member] = { prayers: [], responses: [], comments: [], dates: [], visibilities: [], indices: [] };
-          }
-        });
-        return dataMap;
-      };
-      let dataMap;
-      try {
-        const bulkData = await withTimeout(gasClient.getPrayersAll(group.groupId), 25000);
-        dataMap = buildMapFromBulk(bulkData);
-      } catch (bulkErr) {
-        console.warn('Bulk load failed, fallback to per-member:', bulkErr?.message);
-        dataMap = {};
-        const fetchPromises = group.members.map(async (member) => {
-          try {
-            const data = await gasClient.getPrayers(group.groupId, member);
-            if (data) {
-              const commonTime = data.time || '';
-              const dates = (data.dates || []).map(d => d && String(d).trim() !== '' ? d : commonTime);
-              const prayers = data.prayers ? data.prayers.filter(p => p && String(p).trim() !== '') : [];
-              dataMap[member] = {
-                prayers,
-                responses: data.responses || [],
-                comments: data.comments || [],
-                dates: dates,
-                visibilities: data.visibilities || [],
-                indices: data.indices || []
-              };
-            } else {
-              dataMap[member] = { prayers: [], responses: [], comments: [], dates: [], visibilities: [], indices: [] };
-            }
-          } catch (e) {
-            console.error(`Failed to fetch for ${member}`, e);
-            dataMap[member] = { prayers: [], responses: [], comments: [], dates: [], visibilities: [], indices: [] };
-          }
-        });
-        await Promise.all(fetchPromises);
-      }
+      const dataMap = await fetchGroupDataMap(group);
+      groupCacheRef.current[group.groupId] = { at: Date.now(), dataMap };
       groupPrayersRef.current = dataMap; // [ADD] Sync ref for member selection
       setGroupPrayers(dataMap);
-      window.history.pushState({ view: 'members', group }, '', '#members');
     } catch (error) {
       console.error('Group load failed', error);
+      showToast('그룹 데이터를 불러오지 못했습니다. 다시 시도해주세요.', 'error');
     } finally {
       setIsLoading(false);
     }
-  }, [logVisit]);
+  }, [logVisit, showToast]);
 
   const handleViewAllPrayers = useCallback(async () => {
     if (!groups || groups.length === 0) {
@@ -683,6 +706,15 @@ export default function Home() {
     window.history.back();
   }, []);
 
+  // 기도 화면에서 뒤로가기 → 멤버 목록을 건너뛰고 그룹 선택으로 직행
+  const goToGroups = useCallback(() => {
+    setCurrentGroup(null);
+    setCurrentMember(null);
+    setViewAllData(null);
+    setCurrentView('groups');
+    window.history.pushState({ view: 'groups' }, '', '#groups');
+  }, []);
+
   const toggleDarkMode = useCallback(() => {
     setIsDarkMode(prev => {
       const newMode = !prev;
@@ -795,7 +827,11 @@ export default function Home() {
           // If NOT in groups view, go back using history
           if (currentViewRef.current !== 'groups') {
             event.preventDefault();
-            window.history.back();
+            if (currentViewRef.current === 'prayers') {
+              goToGroups();
+            } else {
+              window.history.back();
+            }
           }
         }
       }
@@ -824,7 +860,7 @@ export default function Home() {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keydown', handleMainShortcuts);
     };
-  }, [currentView, groups, handleViewAllPrayers, handleSelectGroup]);
+  }, [currentView, groups, handleViewAllPrayers, handleSelectGroup, goToGroups]);
   // Run once on mount
 
 
@@ -1281,7 +1317,7 @@ export default function Home() {
         <div className="w-10 flex justify-start">
           {currentView !== 'groups' && (
             <button
-              onClick={handleBack}
+              onClick={() => { if (currentView === 'prayers') goToGroups(); else handleBack(); }}
               className="p-2 text-slate-400 hover:text-blue-600 dark:text-slate-500 dark:hover:text-blue-400 transition-colors bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 flex items-center justify-center"
               title="뒤로 가기"
             >
