@@ -593,12 +593,20 @@ export default function Home() {
     let hasData = false;
 
     members.forEach(member => {
-      const data = groupPrayers[member];
+      // [FIX] 현재 열람 중인 멤버는 화면의 최신 state를 사용 (groupPrayers 미동기화분 반영)
+      const isLiveMember = currentView === 'prayers' && currentMember === member;
+      const data = isLiveMember
+        ? { prayers, responses, comments, dates, visibilities }
+        : groupPrayers[member];
       if (data && data.prayers && data.prayers.length > 0) {
         hasData = true;
         text += `[${member}]\n`;
         data.prayers.forEach((p, idx) => {
-          if (data.visibilities && data.visibilities[idx] === 'Hidden') return;
+          // [FIX] 보관됨/숨김 응답도 제외 (멤버목록·전체보기와 동일 기준)
+          const response = data.responses ? data.responses[idx] : '';
+          const visibility = data.visibilities ? data.visibilities[idx] : '';
+          if (response === '보관됨' || response === '숨김' || visibility === 'Hidden') return;
+          if (!p || String(p).trim() === '') return;
           text += `- ${p}\n`;
         });
         text += `\n`;
@@ -617,7 +625,7 @@ export default function Home() {
 
     // Always use clipboard as requested by user
     copyToClipboard(text, successMsg);
-  }, [currentGroup, groupPrayers, showToast, copyToClipboard]);
+  }, [currentGroup, groupPrayers, showToast, copyToClipboard, currentView, currentMember, prayers, responses, visibilities]);
 
   const handleBack = useCallback(() => {
     window.history.back();
