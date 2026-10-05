@@ -62,7 +62,8 @@ export async function POST(request) {
                 results.push({ endpoint: sub.endpoint, code, error: err.message });
 
                 // 🔥 410 Gone → 만료된 구독 자동 삭제
-                if (code === 410 || code === 404) {
+                // 403 → VAPID 키 불일치(영구 실패)로 삭제 후 재구독 유도
+                if (code === 410 || code === 404 || code === 403) {
                     console.log("🗑️ 만료된 구독 제거 요청:", sub.endpoint);
                     try {
                         await fetch(`${GAS_URL}?mode=deleteSub`, {
