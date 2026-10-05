@@ -13,6 +13,7 @@ import MemberList from '@/components/group/MemberList';
 import AddGroupModal from '@/components/group/AddGroupModal';
 import NotificationSettingsModal from '@/components/NotificationSettingsModal';
 import Sidebar from '@/components/Sidebar';
+import InAppBrowserBanner, { restoreCarriedHash } from '@/components/InAppBrowserBanner';
 import MemberActionModal from '@/components/group/MemberActionModal';
 // import html2canvas from 'html2canvas'; // 동적 import로 변경
 
@@ -381,6 +382,8 @@ export default function Home() {
   const guestInitRef = useRef(null);
   useEffect(() => {
     const initView = async () => {
+      // 인앱 탈출(intent) 시 쿼리로 전달된 해시 복원
+      restoreCarriedHash();
       const hash = window.location.hash;
       if (!hash) return;
 
@@ -1174,6 +1177,7 @@ export default function Home() {
   if (!user && !isGuestMode) {
     return (
       <main className="container mx-auto px-4 min-h-[100dvh] flex flex-col justify-between py-10">
+        <InAppBrowserBanner />
         <header className="text-center space-y-2 pt-8">
           <h1 className="text-5xl font-black text-slate-900 tracking-tighter">
             PRAY <span className="text-blue-600">GROUP</span>
@@ -1200,6 +1204,7 @@ export default function Home() {
 
   return (
     <main className="w-full max-w-4xl mx-auto px-4 py-8 min-h-[100dvh] bg-transparent dark:bg-black">
+      <InAppBrowserBanner />
       {/* Global Header */}
       <div className="relative flex items-center justify-between mb-0.5 px-1 h-10">
         {/* Left: Back Button */}
