@@ -1347,6 +1347,28 @@ function bumpGroupsVer() {
   } catch (e) {}
 }
 
+/* -------------------------------------------------------------------------- */
+/* ✅ 콜드스타트 완화: 5분 간격 웜업 (최초 1회 setupKeepWarm 실행)               */
+/* -------------------------------------------------------------------------- */
+function keepWarm() {
+  try {
+    CacheService.getScriptCache().put('warmup', String(Date.now()), 600);
+    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("그룹정보");
+    if (sheet && sheet.getLastColumn() > 0) {
+      sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues();
+    }
+  } catch (e) {}
+}
+
+function setupKeepWarm() {
+  const triggers = ScriptApp.getProjectTriggers();
+  triggers.forEach(t => {
+    if (t.getHandlerFunction() === 'keepWarm') ScriptApp.deleteTrigger(t);
+  });
+  ScriptApp.newTrigger('keepWarm').timeBased().everyMinutes(5).create();
+  Logger.log('keepWarm 트리거 등록 완료 (5분 간격)');
+}
+
 function jsonOutput(obj) {
   // 기본 JSON 출력 (헤더는 doGet에서 추가됨)
   return ContentService.createTextOutput(JSON.stringify(obj))
