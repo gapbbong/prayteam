@@ -706,7 +706,7 @@ export default function Home() {
     window.history.back();
   }, []);
 
-  // 기도 화면에서 뒤로가기 → 멤버 목록을 건너뛰고 그룹 선택으로 직행
+  // 뒤로가기 체인: 기도 → 멤버 목록 → 그룹 선택
   const goToGroups = useCallback(() => {
     setCurrentGroup(null);
     setCurrentMember(null);
@@ -714,6 +714,16 @@ export default function Home() {
     setCurrentView('groups');
     window.history.pushState({ view: 'groups' }, '', '#groups');
   }, []);
+
+  const goToMembers = useCallback(() => {
+    if (!currentGroup) {
+      goToGroups();
+      return;
+    }
+    setCurrentMember(null);
+    setCurrentView('members');
+    window.history.pushState({ view: 'members', group: currentGroup }, '', '#members');
+  }, [currentGroup, goToGroups]);
 
   const toggleDarkMode = useCallback(() => {
     setIsDarkMode(prev => {
@@ -828,6 +838,8 @@ export default function Home() {
           if (currentViewRef.current !== 'groups') {
             event.preventDefault();
             if (currentViewRef.current === 'prayers') {
+              goToMembers();
+            } else if (currentViewRef.current === 'members') {
               goToGroups();
             } else {
               window.history.back();
@@ -860,7 +872,7 @@ export default function Home() {
       window.removeEventListener('keydown', handleKeyDown);
       window.removeEventListener('keydown', handleMainShortcuts);
     };
-  }, [currentView, groups, handleViewAllPrayers, handleSelectGroup, goToGroups]);
+  }, [currentView, groups, handleViewAllPrayers, handleSelectGroup, goToGroups, goToMembers]);
   // Run once on mount
 
 
@@ -1317,7 +1329,11 @@ export default function Home() {
         <div className="w-10 flex justify-start">
           {currentView !== 'groups' && (
             <button
-              onClick={() => { if (currentView === 'prayers') goToGroups(); else handleBack(); }}
+              onClick={() => {
+                if (currentView === 'prayers') goToMembers();
+                else if (currentView === 'members') goToGroups();
+                else handleBack();
+              }}
               className="p-2 text-slate-400 hover:text-blue-600 dark:text-slate-500 dark:hover:text-blue-400 transition-colors bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-100 dark:border-slate-700 flex items-center justify-center"
               title="뒤로 가기"
             >

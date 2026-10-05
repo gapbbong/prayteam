@@ -27,20 +27,28 @@ export function AuthProvider({ children }) {
                     }
                     if (id && pwd) {
                         const normId = String(id).toLowerCase().trim();
-                        // Auto login attempt
-                        const result = await gasClient.login(normId, pwd);
-                        if (result.success) {
-                            const userData = {
-                                id: id,
-                                name: result.name || id,
-                                adminId: result.adminId || id
-                            };
-                            setUser(userData);
-                            // Session is valid
-                        } else {
-                            // Invalid credentials
-                            localStorage.removeItem('prayteam_creds');
+                        // [FIX] 낙관적 자동로그인: 검증 응답(약 10초)을 기다리지 않고 먼저 진입.
+                        // 그룹 목록과 검증을 병렬로 수행해 첫 화면 시간을 단축.
+                        setUser({ id: normId, name: normId, adminId: normId });
+                        setLoading(false);
+                        try {
+                            const result = await gasClient.login(normId, pwd);
+                            if (result.success) {
+                                setUser({
+                                    id: normId,
+                                    name: result.name || normId,
+                                    adminId: result.adminId || normId
+                                });
+                                // Session is valid
+                            } else {
+                                // Invalid credentials
+                                localStorage.removeItem('prayteam_creds');
+                                setUser(null);
+                            }
+                        } catch {
+                            // 네트워크 실패 시에는 낙관적 세션 유지 (그룹 로딩이 자체 재시도함)
                         }
+                        return;
                     }
                 } catch (error) {
                     console.error('Auto login failed', error);
