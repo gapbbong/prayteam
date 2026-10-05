@@ -90,11 +90,38 @@ export default function Home() {
   const [loadingProgress, setLoadingProgress] = useState('');
 
   // Update notification status only when group changes
+  // [FIX] localStorage 깃발이 아닌 실제 푸시 구독 존재 여부로 판정.
+  // 설치된 앱(WebAPK)과 브라우저 탭은 저장소가 분리되어 깃발만 믿으면 거짓 표시가 됨.
   useEffect(() => {
-    if (currentGroup?.groupId) {
-      const isEnabled = localStorage.getItem(`prayteam_noti_${currentGroup.groupId}`) === 'true';
-      setIsCurrentGroupNotiEnabled(isEnabled);
-    }
+    if (!currentGroup?.groupId) return;
+    const groupId = currentGroup.groupId;
+    let cancelled = false;
+    (async () => {
+      const stored = localStorage.getItem(`prayteam_noti_${groupId}`) === 'true';
+      let hasSub = false;
+      try {
+        if ('serviceWorker' in navigator && navigator.serviceWorker) {
+          const reg = await Promise.race([
+            navigator.serviceWorker.ready,
+            new Promise((_, reject) => setTimeout(() => reject(new Error('SW timeout')), 3000))
+          ]);
+          const sub = await reg.pushManager.getSubscription();
+          hasSub = !!sub;
+        }
+      } catch {
+        hasSub = false;
+      }
+      if (cancelled) return;
+      if (!stored && hasSub) {
+        // 구독은 있는데 깃발만 없으면 복구
+        localStorage.setItem(`prayteam_noti_${groupId}`, 'true');
+      } else if (stored && !hasSub) {
+        // 깃발만 있고 실제 구독이 없으면(다른 컨텍스트에서 켠 경우) 거짓 표시 방지
+        localStorage.removeItem(`prayteam_noti_${groupId}`);
+      }
+      setIsCurrentGroupNotiEnabled(hasSub);
+    })();
+    return () => { cancelled = true; };
   }, [currentGroup?.groupId]); // Group ID 변경 시에만 동기화
 
   // State for View All Prayers
