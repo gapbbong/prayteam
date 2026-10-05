@@ -48,6 +48,14 @@ export default function NotificationSettingsModal({ isOpen, onClose, groupName, 
             // Turning ON
             setLoading(true);
             try {
+                if (typeof window === 'undefined' || !('Notification' in window)) {
+                    showToast('이 브라우저(인앱)에서는 알림을 지원하지 않습니다. 외부 브라우저로 열어주세요.', 'error');
+                    setIsEnabled(false);
+                    if (onStatusChange) onStatusChange(false);
+                    localStorage.removeItem(`prayteam_noti_${groupId}`);
+                    setLoading(false);
+                    return;
+                }
                 // 1. Request Permission
                 const permission = await Notification.requestPermission();
                 setPermissionStatus(permission);

@@ -38,6 +38,10 @@ export default function Sidebar({
         setNotiBusy(true);
         showToast('알림을 설정하는 중입니다. 잠시만 기다려주세요...', 'info', 5000, true);
         try {
+            if (typeof window === 'undefined' || !('Notification' in window)) {
+                showToast('이 브라우저(인앱)에서는 알림을 지원하지 않습니다. 외부 브라우저로 열어주세요.', 'error');
+                return;
+            }
             const permission = await Notification.requestPermission();
             if (permission !== 'granted') {
                 showToast('알림 권한이 거부되었습니다.', 'error');
