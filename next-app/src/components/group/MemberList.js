@@ -11,13 +11,35 @@ export default function MemberList({
 }) {
     const longPressTimer = useRef(null);
     const isLongPress = useRef(false);
+    const pointerStart = useRef({ x: 0, y: 0 });
+    const pointerMoved = useRef(false);
 
-    const handleTouchStart = (member) => {
+    const handleTouchStart = (member, e) => {
         isLongPress.current = false;
+        pointerMoved.current = false;
+        if (e && typeof e.clientX === 'number') {
+            pointerStart.current = { x: e.clientX, y: e.clientY };
+        }
         longPressTimer.current = setTimeout(() => {
             isLongPress.current = true;
             onArchiveMember(member);
         }, 700);
+    };
+
+    const handleTouchMove = (e) => {
+        if (e && typeof e.clientX === 'number') {
+            const dx = e.clientX - pointerStart.current.x;
+            const dy = e.clientY - pointerStart.current.y;
+            if (Math.hypot(dx, dy) > 10) {
+                pointerMoved.current = true;
+            }
+        } else {
+            pointerMoved.current = true;
+        }
+        if (longPressTimer.current) {
+            clearTimeout(longPressTimer.current);
+            longPressTimer.current = null;
+        }
     };
 
     const handleTouchEnd = (member) => {
@@ -26,6 +48,7 @@ export default function MemberList({
             longPressTimer.current = null;
         }
         if (isLongPress.current) return;
+        if (pointerMoved.current) return; // 스크롤 드래그 후 오탭 방지
         onSelectMember(member);
     };
 
@@ -63,7 +86,7 @@ export default function MemberList({
             </div>
 
             <div className="grid gap-6">
-                {members.map((member) => {
+                {members.map((member, memberIdx) => {
                     const memberData = groupPrayers[member] || { prayers: [], responses: [], visibilities: [] };
 
                     // Filter active prayers (not archived/hidden AND not empty)
@@ -89,15 +112,10 @@ export default function MemberList({
 
                     return (
                         <div
-                            key={member}
-                            onPointerDown={() => handleTouchStart(member)}
+                            key={`${member}-${memberIdx}`}
+                            onPointerDown={(e) => handleTouchStart(member, e)}
                             onPointerUp={() => handleTouchEnd(member)}
-                            onPointerMove={() => {
-                                if (longPressTimer.current) {
-                                    clearTimeout(longPressTimer.current);
-                                    longPressTimer.current = null;
-                                }
-                            }}
+                            onPointerMove={(e) => handleTouchMove(e)}
                             onPointerCancel={() => {
                                 if (longPressTimer.current) {
                                     clearTimeout(longPressTimer.current);
@@ -140,7 +158,8 @@ export default function MemberList({
                                         <span className="text-[10px] font-bold text-slate-400 bg-slate-50 px-2 py-0.5 rounded-md border border-slate-100">
                                             {getRelativeTime(
                                                 [...memberData.dates]
-                                                    .filter((_, i) => {
+                                                    .filter((d, i) => {
+                                                        if (!d || String(d).trim() === '') return false;
                                                         const response = memberData.responses?.[i];
                                                         const visibility = memberData.visibilities?.[i];
                                                         return response !== '보관됨' && response !== '숨김' && visibility !== 'Hidden';

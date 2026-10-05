@@ -162,28 +162,33 @@ export default function Home() {
     setCurrentView('members'); // 뷰도 먼저 전환하여 헤더가 그룹명을 표시하도록 함
     setIsLoading(true);
     try {
+      // [FIX] 멤버별 getPrayers N연타 대신 getPrayersAll 1회로 벌크 로딩 (GAS 콜드스타트 N번 회피)
+      const bulkData = await gasClient.getPrayersAll(group.groupId);
       const dataMap = {};
-      const fetchPromises = group.members.map(async (member) => {
-        try {
-          const data = await gasClient.getPrayers(group.groupId, member);
-          if (data) {
-            const commonTime = data.time || '';
-            const dates = (data.dates || []).map(d => d && d.trim() !== '' ? d : commonTime);
-            dataMap[member] = {
-              prayers: data.prayers ? data.prayers.filter(p => p && p.trim() !== '') : [],
-              responses: data.responses || [],
-              comments: data.comments || [],
-              dates: dates,
-              visibilities: data.visibilities || [],
-              indices: data.indices || []
-            };
-          }
-        } catch (e) {
-          console.error(`Failed to fetch for ${member}`, e);
-          dataMap[member] = { prayers: [], responses: [], comments: [], dates: [], visibilities: [] };
+      const lookup = {};
+      if (Array.isArray(bulkData)) {
+        bulkData.forEach(item => {
+          if (item && item.멤버이름) lookup[item.멤버이름] = item;
+        });
+      }
+      group.members.forEach((member) => {
+        const data = lookup[member];
+        if (data) {
+          const commonTime = data.작성시간 || data.time || '';
+          const dates = (data.dates || []).map(d => d && String(d).trim() !== '' ? d : commonTime);
+          const prayers = data.prayers ? data.prayers.filter(p => p && String(p).trim() !== '') : [];
+          dataMap[member] = {
+            prayers,
+            responses: data.responses || [],
+            comments: data.comments || [],
+            dates: dates,
+            visibilities: data.visibilities || [],
+            indices: data.indices || prayers.map((_, i) => i + 1)
+          };
+        } else {
+          dataMap[member] = { prayers: [], responses: [], comments: [], dates: [], visibilities: [], indices: [] };
         }
       });
-      await Promise.all(fetchPromises);
       groupPrayersRef.current = dataMap; // [ADD] Sync ref for member selection
       setGroupPrayers(dataMap);
       window.history.pushState({ view: 'members', group }, '', '#members');
@@ -192,7 +197,7 @@ export default function Home() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [logVisit]);
 
   const handleViewAllPrayers = useCallback(async () => {
     if (!groups || groups.length === 0) {
@@ -346,6 +351,7 @@ export default function Home() {
 
   /* 📌 초기화 로직 (URL 파라미터 체크 및 게스트 모드)               */
   /* ========================================================================= */
+  const guestInitRef = useRef(null);
   useEffect(() => {
     const initView = async () => {
       const hash = window.location.hash;
@@ -354,6 +360,11 @@ export default function Home() {
       const params = new URLSearchParams(hash.split('?')[1]);
       const groupId = params.get('groupId');
       const targetMember = params.get('member') ? decodeURIComponent(params.get('member')) : null;
+
+      // [FIX] 자동로그인 전/후 중복 실행 방지 (같은 URL은 1회만 초기화)
+      const initKey = `${groupId || ''}|${targetMember || ''}`;
+      if (guestInitRef.current === initKey) return;
+      guestInitRef.current = initKey;
 
       if (groupId) {
         // [Guest Mode Logic]
@@ -898,8 +909,10 @@ export default function Home() {
     const newPrayers = [...prayers, newText];
     const newResponses = [...responses, '기대중'];
     const newComments = [...comments, ''];
-    const newVisibilities = [...visibilities, ''];
+    const newVisibilities = [...visibilities, 'Show'];
     const newDates = [...dates, '']; // Date handled by backend
+    const maxIndex = indices.length > 0 ? Math.max(...indices) : 0;
+    const newIndices = [...indices, maxIndex + 1];
 
     // Optimistic UI Update
     setPrayers(newPrayers);
@@ -918,7 +931,7 @@ export default function Home() {
         comments: newComments,
         dates: newDates,
         visibilities: newVisibilities,
-        indices: indices // Keep indices as is or update if needed
+        indices: newIndices
       };
       groupPrayersRef.current = next; // Sync Ref
       return next;
@@ -1040,7 +1053,15 @@ export default function Home() {
         allowTaint: true,
         ignoreElements: (node) => {
           // 사이드바, 토스트, 버튼 등 불필요한 요소 제외 시도 (클래스나 태그로)
-          return node.classList?.contains('fixed') || node.tagName === 'BUTTON';
+          // SVG 원소의 classList는 SVGAnimatedString이라 .contains가 없을 수 있음
+          try {
+            if (typeof node?.classList?.contains === 'function') {
+              return node.classList.contains('fixed') || node.tagName === 'BUTTON';
+            }
+            return node.tagName === 'BUTTON';
+          } catch {
+            return false;
+          }
         }
       });
 

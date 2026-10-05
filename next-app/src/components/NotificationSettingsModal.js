@@ -3,6 +3,19 @@
 import { useState, useEffect } from 'react';
 import { gasClient } from '@/lib/gasClient';
 
+const VAPID_PUBLIC_KEY = "BI18lvSQsbHQtOQq7r7E5kx_nHAC9pvHdjgN16yTd2cs38vQgbniDUiOnV6ja8OceKY9ku_q2RyC1owPsfghJeE";
+
+function urlBase64ToUint8Array(base64String) {
+    const padding = '='.repeat((4 - base64String.length % 4) % 4);
+    const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+    const rawData = window.atob(base64);
+    const outputArray = new Uint8Array(rawData.length);
+    for (let i = 0; i < rawData.length; ++i) {
+        outputArray[i] = rawData.charCodeAt(i);
+    }
+    return outputArray;
+}
+
 export default function NotificationSettingsModal({ isOpen, onClose, groupName, groupId, user, onStatusChange }) {
     const [isEnabled, setIsEnabled] = useState(false);
     const [loading, setLoading] = useState(false);
@@ -65,10 +78,44 @@ export default function NotificationSettingsModal({ isOpen, onClose, groupName, 
                 } catch (swError) {
                     console.warn('ServiceWorker ready timeout or error:', swError);
                 }
+
+                // 3. 푸시 구독 + 서버 저장 (Sidebar와 동일 경로)
+                const registration = await navigator.serviceWorker.ready;
+                const subscription = await registration.pushManager.subscribe({
+                    userVisibleOnly: true,
+                    applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+                });
+                await gasClient.saveSub({
+                    groupId,
+                    subscription: subscription.toJSON()
+                });
+                localStorage.setItem(`prayteam_noti_${groupId}`, 'true');
             } catch (error) {
                 console.error('Notification Subscribe Error:', error);
+                setIsEnabled(false);
+                if (onStatusChange) onStatusChange(false);
+                localStorage.removeItem(`prayteam_noti_${groupId}`);
             } finally {
                 setLoading(false);
+            }
+        } else {
+            // Turning OFF: 푸시 구독 해제 시도 (실패해도 로컬 상태는 OFF 유지)
+            try {
+                const registration = await navigator.serviceWorker.ready;
+                const subscription = await registration.pushManager.getSubscription();
+                if (subscription) {
+                    try {
+                        await gasClient.deleteSub({
+                            groupId,
+                            endpoint: subscription.endpoint
+                        });
+                    } catch (e) {
+                        console.warn('Server unsubscribe failed (ignored):', e);
+                    }
+                    await subscription.unsubscribe();
+                }
+            } catch (e) {
+                console.warn('Unsubscribe failed (ignored):', e);
             }
         }
     };

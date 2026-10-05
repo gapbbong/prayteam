@@ -36,14 +36,12 @@ function doGet(e) {
 }
 
 // ✅ CORS preflight 요청 처리 (OPTIONS 메서드)
+// GAS ContentService는 커스텀 헤더를 지원하지 않으므로 빈 200만 반환.
+// 실제 CORS는 Netlify/Next 프록시에서 처리한다.
 function doOptions(e) {
   return ContentService
     .createTextOutput("")
-    .setMimeType(ContentService.MimeType.TEXT)
-    .setHeader('Access-Control-Allow-Origin', '*')
-    .setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
-    .setHeader('Access-Control-Allow-Headers', 'Content-Type')
-    .setHeader('Access-Control-Max-Age', '86400');
+    .setMimeType(ContentService.MimeType.TEXT);
 }
 
 
@@ -78,6 +76,7 @@ function doPost(e) {
     case "addGroup": return handleAddGroup(e);
     case "saveNote": return handleSaveNote(e);
     case "saveSub": return handleSaveSub(e);
+    case "deleteSub": return handleDeleteSub(e);
     case "renameMember": return handleRenameMember(data);
     case "addSharedGroup": return handleAddSharedGroup(e);
     case "addLog": return handleAddLog(e);
@@ -205,8 +204,16 @@ function handleFindPwd(e) {
 }
 
 function handleSaveNote(e) {
-  const body = JSON.parse(e.postData.contents);
+  let body = {};
+  try {
+    body = JSON.parse((e && e.postData && e.postData.contents) || "{}");
+  } catch (err) {
+    return jsonOutput({ success: false, message: "JSON 파싱 실패" });
+  }
   const { groupId, member, index, answer, comment, visibility } = body;
+  if (!groupId || !member || index === undefined) {
+    return jsonOutput({ success: false, message: "필수 값 누락 (groupId/member/index)" });
+  }
 
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName(groupId);
@@ -1120,7 +1127,24 @@ function handleSaveSub(e) {
   }
 
   const { groupId, subscription } = body;
-  if (!groupId || !subscription) {
+  // 구형 클라이언트 호환: { groupId, endpoint, subJson } 또는 subscription 단독 전송
+  let subObj = subscription;
+  if (!subObj && body.subJson) {
+    try {
+      subObj = typeof body.subJson === "string" ? JSON.parse(body.subJson) : body.subJson;
+    } catch (err) {
+      return jsonOutput({ success: false, message: "subJson 파싱 실패" });
+    }
+  }
+  if (!subObj && body.endpoint) {
+    subObj = body; // subscription 객체를 그대로 body로 보낸 경우
+  }
+  if (!groupId && e && e.parameter && e.parameter.groupId) {
+    // 쿼리스트링으로 groupId가 온 경우 허용
+    body.groupId = e.parameter.groupId;
+  }
+  const finalGroupId = body.groupId || groupId;
+  if (!finalGroupId || !subObj) {
     return jsonOutput({ success: false, message: "필수 값 누락" });
   }
 
@@ -1132,8 +1156,11 @@ function handleSaveSub(e) {
   }
 
   const now = Utilities.formatDate(new Date(), "Asia/Seoul", "yyyy-MM-dd HH:mm:ss");
-  const endpoint = subscription.endpoint;
-  const subJson = JSON.stringify(subscription);
+  const endpoint = subObj.endpoint;
+  const subJson = JSON.stringify(subObj);
+  if (!endpoint) {
+    return jsonOutput({ success: false, message: "endpoint 누락" });
+  }
 
   // 중복 체크 (엔드포인트 + 그룹ID)
   // 데이터가 많아지면 성능 이슈가 있을 수 있으므로, 최근 데이터만 체크하거나 별도 로직 필요
@@ -1152,7 +1179,7 @@ function handleSaveSub(e) {
     // 역순 검색 (최신 데이터 우선)
     for (let i = data.length - 1; i >= 0; i--) {
       // data[i][1] = 그룹ID, data[i][2] = 엔드포인트
-      if (data[i][2] === endpoint && data[i][1] === groupId) {
+      if (data[i][2] === endpoint && data[i][1] === finalGroupId) {
         foundRow = startRow + i;
         break;
       }
@@ -1166,9 +1193,39 @@ function handleSaveSub(e) {
     return jsonOutput({ success: true, message: "구독 갱신 완료" });
   } else {
     // 추가
-    sheet.appendRow([now, groupId, endpoint, subJson]);
+    sheet.appendRow([now, finalGroupId, endpoint, subJson]);
     return jsonOutput({ success: true, message: "구독 저장 완료" });
   }
+}
+
+function handleDeleteSub(e) {
+  let body = {};
+  try {
+    body = JSON.parse((e && e.postData && e.postData.contents) || "{}");
+  } catch (err) {
+    return jsonOutput({ success: false, message: "JSON 파싱 실패" });
+  }
+  const endpoint = body.endpoint || (e && e.parameter && e.parameter.endpoint);
+  const groupId = body.groupId || (e && e.parameter && e.parameter.groupId);
+  if (!endpoint) {
+    return jsonOutput({ success: false, message: "endpoint 누락" });
+  }
+  const ss = SpreadsheetApp.getActiveSpreadsheet();
+  const sheet = ss.getSheetByName("pushSubs");
+  if (!sheet) return jsonOutput({ success: true, message: "시트 없음 (삭제 불필요)" });
+  const lastRow = sheet.getLastRow();
+  if (lastRow < 2) return jsonOutput({ success: true, message: "삭제할 행 없음" });
+  const data = sheet.getRange(2, 1, lastRow - 1, 4).getValues();
+  let deleted = 0;
+  for (let i = data.length - 1; i >= 0; i--) {
+    const rowEndpoint = data[i][2];
+    const rowGroup = data[i][1];
+    if (rowEndpoint === endpoint && (!groupId || rowGroup === groupId)) {
+      sheet.deleteRow(i + 2);
+      deleted++;
+    }
+  }
+  return jsonOutput({ success: true, deleted: deleted });
 }
 
 function handleGetSubs(e) {

@@ -36,8 +36,10 @@ export const gasClient = {
       return await response.json();
     } catch (error) {
       console.error('GAS Client Request Failed:', error);
-      // Trigger global error event for our Error Overlay
-      window.dispatchEvent(new CustomEvent('app-error', { detail: error.message }));
+      // Trigger global error event for our Error Overlay (SSR-safe)
+      if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
+        window.dispatchEvent(new CustomEvent('app-error', { detail: error.message }));
+      }
       throw error;
     }
   },
@@ -60,11 +62,19 @@ export const gasClient = {
   },
 
   async saveSub({ groupId, subscription }) {
+    // GAS handleSaveSub expects { groupId, subscription }
     return this.request({
       mode: 'saveSub',
       groupId,
-      endpoint: subscription.endpoint,
-      subJson: JSON.stringify(subscription)
+      subscription,
+    });
+  },
+
+  async deleteSub({ groupId, endpoint }) {
+    return this.request({
+      mode: 'deleteSub',
+      groupId,
+      endpoint,
     });
   },
 

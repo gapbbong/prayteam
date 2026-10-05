@@ -35,6 +35,13 @@ export default function AddGroupModal({ isOpen, onClose, onSubmit }) {
                 .map(m => m.trim())
                 .filter(m => m !== '');
 
+            const duplicates = memberList.filter((m, i) => memberList.indexOf(m) !== i);
+            if (duplicates.length > 0) {
+                showToast(`중복된 이름이 있습니다: ${[...new Set(duplicates)].join(', ')}`, 'error');
+                setIsSubmitting(false);
+                return;
+            }
+
             console.log('Sending memberList:', memberList, 'Length:', memberList.length);
             await onSubmit(groupName.trim(), memberList);
             setGroupName('');

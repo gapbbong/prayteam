@@ -5,28 +5,8 @@ const GAS_URL = CONFIG.GAS_URL;
 
 exports.handler = async function (event) {
   const method = event.httpMethod || "GET";
-  let query = "";
 
-  if (event.rawQuery) {
-    query = "?" + event.rawQuery;
-  } else if (event.queryStringParameters) {
-    const qp = new URLSearchParams(event.queryStringParameters).toString();
-    if (qp) query = "?" + qp;
-  }
-
-  const options = { method };
-  if (method === "POST") {
-    const bodyData = JSON.parse(event.body || "{}");
-    const queryParams = Object.keys(bodyData).map(key => `${key}=${encodeURIComponent(bodyData[key])}`).join('&');
-    if (!query) query = queryParams ? "?" + queryParams : "";
-    options.body = JSON.stringify(bodyData);
-  }
-
-  const targetUrl = `${GAS_URL}${query}`;
-  console.log(`[Proxy] Forwarding ${method} to: ${targetUrl}`);
-
-
-  // ✅ CORS preflight 처리
+  // ✅ CORS preflight 처리 (body 파싱보다 먼저)
   if (method === "OPTIONS") {
     return {
       statusCode: 200,
@@ -38,6 +18,40 @@ exports.handler = async function (event) {
       body: "OK",
     };
   }
+
+  let query = "";
+
+  if (event.rawQuery) {
+    query = "?" + event.rawQuery;
+  } else if (event.queryStringParameters) {
+    const qp = new URLSearchParams(event.queryStringParameters).toString();
+    if (qp) query = "?" + qp;
+  }
+
+  const options = { method };
+  if (method === "POST") {
+    // GAS는 e.postData.contents(JSON body)에서 mode를 읽으므로
+    // body를 쿼리로 펼치지 않는다 (중첩객체 깨짐 + URI肥大 방지)
+    let bodyData = {};
+    try {
+      bodyData = JSON.parse(event.body || "{}");
+    } catch (e) {
+      return {
+        statusCode: 400,
+        headers: {
+          "Access-Control-Allow-Origin": "*",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ success: false, message: "invalid JSON body" }),
+      };
+    }
+    options.headers = { "Content-Type": "application/json" };
+    options.body = JSON.stringify(bodyData);
+  }
+
+  const targetUrl = `${GAS_URL}${query}`;
+  // 비밀번호 등 민감 쿼리 마스킹 후 로깅
+  console.log(`[Proxy] Forwarding ${method} to: ${targetUrl.replace(/(pwd|password)=[^&]*/gi, '$1=***')}`);
 
   try {
     const response = await fetch(targetUrl, options);

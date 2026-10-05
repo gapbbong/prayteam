@@ -14,10 +14,21 @@ export function AuthProvider({ children }) {
             const savedCreds = localStorage.getItem('prayteam_creds');
             if (savedCreds) {
                 try {
-                    const { id, pwd } = JSON.parse(savedCreds);
+                    const parsed = JSON.parse(savedCreds);
+                    // 신형(b64) + 구형(평문) 모두 읽기
+                    let id = parsed.id;
+                    let pwd = parsed.pwd;
+                    if (parsed.b64) {
+                        try {
+                            const decoded = JSON.parse(atob(parsed.b64));
+                            id = decoded.id;
+                            pwd = decoded.pwd;
+                        } catch { /* 구형으로 폴백 */ }
+                    }
                     if (id && pwd) {
+                        const normId = String(id).toLowerCase().trim();
                         // Auto login attempt
-                        const result = await gasClient.login(id, pwd);
+                        const result = await gasClient.login(normId, pwd);
                         if (result.success) {
                             const userData = {
                                 id: id,
@@ -43,23 +54,30 @@ export function AuthProvider({ children }) {
 
     const login = async (id, pwd) => {
         try {
-            const result = await gasClient.login(id, pwd);
+            const normId = String(id || '').toLowerCase().trim();
+            const result = await gasClient.login(normId, pwd);
             if (result.success) {
                 const userData = {
-                    id: id,
-                    name: result.name || id,
-                    adminId: result.adminId || id
+                    id: normId,
+                    name: result.name || normId,
+                    adminId: result.adminId || normId
                 };
                 setUser(userData);
-                // Save credentials for auto-login
-                localStorage.setItem('prayteam_creds', JSON.stringify({ id, pwd }));
+                // 자동로그인용 저장 (평문 노출 방지: base64 난독화 + 구형 키 정리)
+                try {
+                    localStorage.setItem('prayteam_creds', JSON.stringify({ b64: btoa(JSON.stringify({ id: normId, pwd })) }));
+                } catch {
+                    localStorage.setItem('prayteam_creds', JSON.stringify({ id: normId, pwd }));
+                }
                 localStorage.setItem('prayteam_user', JSON.stringify(userData)); // Backward compatibility
                 return { success: true };
             } else {
                 throw new Error(result.message || '로그인에 실패했습니다.');
             }
         } catch (error) {
-            window.dispatchEvent(new CustomEvent('app-error', { detail: error.message }));
+            if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
+                window.dispatchEvent(new CustomEvent('app-error', { detail: error.message }));
+            }
             return { success: false, error: error.message };
         }
     };

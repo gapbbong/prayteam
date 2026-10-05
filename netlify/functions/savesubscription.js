@@ -9,11 +9,11 @@ exports.handler = async function (event) {
     const { subscription, groupId } = JSON.parse(event.body);
     console.log("📦 수신 데이터:", { groupId, endpoint: subscription?.endpoint });
 
-    // ✅ Google Apps Script로 전달
+    // ✅ Google Apps Script로 전달 (GAS handleSaveSub 스펙: { groupId, subscription })
     const response = await fetch(`${GAS_URL}?mode=saveSub&groupId=${groupId}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(subscription),
+      body: JSON.stringify({ mode: "saveSub", groupId, subscription }),
     });
 
     const text = await response.text();

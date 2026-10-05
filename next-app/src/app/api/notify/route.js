@@ -40,7 +40,13 @@ export async function POST(request) {
         const results = [];
 
         // 2️⃣ 각 구독자에게 푸시 발송
-        for (const sub of subs) {
+        for (const rawSub of subs) {
+            // GAS는 JSON 문자열을 파싱해 객체로 주지만, 레거시 행은 문자열일 수 있음
+            let sub = rawSub;
+            if (typeof sub === 'string') {
+                try { sub = JSON.parse(sub); } catch { continue; }
+            }
+            if (!sub || !sub.endpoint) continue;
             try {
                 await webpush.sendNotification(sub, JSON.stringify({
                     title,

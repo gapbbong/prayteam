@@ -17,6 +17,7 @@ export const metadata = {
 };
 
 import Script from "next/script";
+import ServiceWorkerRegister from "@/components/ServiceWorkerRegister";
 
 export default function RootLayout({ children }) {
   return (
@@ -41,20 +42,4 @@ export default function RootLayout({ children }) {
       </body>
     </html>
   );
-}
-
-function ServiceWorkerRegister() {
-  if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
-    window.addEventListener('load', function () {
-      navigator.serviceWorker.register('/sw.js').then(
-        function (registration) {
-          console.log('ServiceWorker registration successful with scope: ', registration.scope);
-        },
-        function (err) {
-          console.log('ServiceWorker registration failed: ', err);
-        }
-      );
-    });
-  }
-  return null;
 }

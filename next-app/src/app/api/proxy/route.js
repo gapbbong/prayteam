@@ -5,7 +5,7 @@ const GAS_URL = 'https://script.google.com/macros/s/AKfycbzxeKZ-3ibGFZf3r8T91KNP
 export async function GET(request) {
     const { searchParams } = new URL(request.url);
     const targetUrl = `${GAS_URL}?${searchParams.toString()}`;
-    console.log(`[Next Proxy GET] Forwarding to: ${targetUrl}`);
+    console.log(`[Next Proxy GET] ${request.nextUrl.pathname}?${searchParams.toString().replace(/(pwd|password)=[^&]*/gi, '$1=***')}`);
 
     try {
         const response = await fetch(targetUrl);
@@ -32,7 +32,7 @@ export async function POST(request) {
         // [FIX] Do NOT append body to URL params (avoids URI Too Long errors)
         // GAS handles mode from JSON body (e.postData.contents)
         const targetUrl = `${GAS_URL}?${searchParams.toString()}`;
-        console.log(`[Next Proxy POST] Forwarding to: ${targetUrl}`);
+        console.log(`[Next Proxy POST] ${request.nextUrl.pathname} mode=${body?.mode || ''}`);
 
         const response = await fetch(targetUrl, {
             method: 'POST',
