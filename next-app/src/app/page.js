@@ -1176,7 +1176,7 @@ export default function Home() {
       <main className="container mx-auto px-4 min-h-[100dvh] flex flex-col justify-between py-10">
         <header className="text-center space-y-2 pt-8">
           <h1 className="text-5xl font-black text-slate-900 tracking-tighter">
-            PRAY <span className="text-blue-600">TEAM</span>
+            PRAY <span className="text-blue-600">GROUP</span>
           </h1>
           <p className="text-slate-500 font-bold text-lg italic">반드시 응답하시는 하나님</p>
         </header>
@@ -1220,11 +1220,11 @@ export default function Home() {
         {/* Center: Title */}
         <h1 className="absolute left-1/2 -translate-x-1/2 text-2xl font-black text-slate-800 dark:text-slate-100 tracking-tighter italic whitespace-nowrap cursor-pointer select-none" onClick={() => { if (currentView !== 'groups') handleBack(); }}>
           {currentView === 'groups' ? (
-            <span>PRAY <span className="text-blue-600 dark:text-blue-400">TEAM</span></span>
+            <span>PRAY <span className="text-blue-600 dark:text-blue-400">GROUP</span></span>
           ) : (currentView === 'all_prayers' || currentView === 'members' || currentView === 'prayers') ? (
-            currentGroup?.name || (currentView === 'all_prayers' ? '전체 기도제목' : 'PRAY TEAM')
+            currentGroup?.name || (currentView === 'all_prayers' ? '전체 기도제목' : 'PRAY GROUP')
           ) : (
-            <span>PRAY <span className="text-blue-600 dark:text-blue-400">TEAM</span></span>
+            <span>PRAY <span className="text-blue-600 dark:text-blue-400">GROUP</span></span>
           )}
         </h1>
 

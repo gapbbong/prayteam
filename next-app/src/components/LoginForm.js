@@ -90,7 +90,7 @@ export default function LoginForm() {
                     )}
                 </button>
 
-                <div className="flex justify-center gap-4 text-sm font-bold text-slate-400 mt-4">
+                <div className="flex justify-center gap-4 text-lg font-bold text-slate-400 mt-4">
                     <button
                         type="button"
                         onClick={() => router.push('/find-id')}
