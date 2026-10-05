@@ -5,7 +5,7 @@ import { gasClient } from '@/lib/gasClient';
 import { urlBase64ToUint8Array, ensurePushRegistration } from '@/lib/push';
 import { useToast } from '@/context/ToastContext';
 
-const VAPID_PUBLIC_KEY = "BI18lvSQsbHQtOQq7r7E5kx_nHAC9pvHdjgN16yTd2cs38vQgbniDUiOnV6ja8OceKY9ku_q2RyC1owPsfghJeE";
+const VAPID_PUBLIC_KEY = "BP9loI31AQbZOXq8vxN4KOeh4kzLhZ6-hg44xiJ-WOcyjTfbIcu5NbsDcVyxgOYS5Ul_ObmIg_ftJ2ZZZamt4Xw";
 
 export default function NotificationSettingsModal({ isOpen, onClose, groupName, groupId, user, onStatusChange }) {
     const [isEnabled, setIsEnabled] = useState(false);
@@ -91,6 +91,10 @@ export default function NotificationSettingsModal({ isOpen, onClose, groupName, 
                 await gasClient.saveSub({
                     groupId,
                     subscription: subscription.toJSON()
+                }).then((result) => {
+                    if (result && result.success === false) {
+                        throw new Error(result.message || '구독 저장 실패');
+                    }
                 });
                 localStorage.setItem(`prayteam_noti_${groupId}`, 'true');
             } catch (error) {

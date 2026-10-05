@@ -5,8 +5,8 @@ const GAS_URL = "https://script.google.com/macros/s/AKfycbzxeKZ-3ibGFZf3r8T91KNP
 
 // VAPID Keys (Previously from notify.js)
 const vapidKeys = {
-    publicKey: "BI18lvSQsbHQtOQq7r7E5kx_nHAC9pvHdjgN16yTd2cs38vQgbniDUiOnV6ja8OceKY9ku_q2RyC1owPsfghJeE",
-    privateKey: "KQ0kaZqVbLbQqZn6dF-hD6Fazr0xHfn8xXLPfx3xL5A"
+    publicKey: "BP9loI31AQbZOXq8vxN4KOeh4kzLhZ6-hg44xiJ-WOcyjTfbIcu5NbsDcVyxgOYS5Ul_ObmIg_ftJ2ZZZamt4Xw",
+    privateKey: "DyVtvPb2W-_iHi07cT5lc5O-14p115g1W4gXl3Tbcbc"
 };
 
 webpush.setVapidDetails(
