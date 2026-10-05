@@ -152,31 +152,40 @@ export default function Home() {
   /* 📌 주요 핸들러 함수 (초기화 순서 보장을 위해 최상단 배치)             */
   /* ========================================================================= */
 
-  const loadGroups = useCallback(async () => {
+  const loadGroups = useCallback(async (retryCount = 3) => {
     if (!user?.id) return;
     setIsLoading(true);
-    try {
-      const res = await gasClient.getGroups(user.adminId || user.id);
-      const groupList = res.groups ? res.groups : (Array.isArray(res) ? res : []);
-      const formattedGroups = groupList.map(g => {
-        const membersRaw = g.구성원목록 || g.members || [];
-        const membersArray = Array.isArray(membersRaw)
-          ? membersRaw
-          : (typeof membersRaw === 'string' ? membersRaw.split(',').map(m => m.trim()).filter(Boolean) : []);
+    let lastError = null;
+    for (let attempt = 1; attempt <= retryCount; attempt++) {
+      try {
+        const res = await gasClient.getGroups(user.adminId || user.id);
+        const groupList = res.groups ? res.groups : (Array.isArray(res) ? res : []);
+        const formattedGroups = groupList.map(g => {
+          const membersRaw = g.구성원목록 || g.members || [];
+          const membersArray = Array.isArray(membersRaw)
+            ? membersRaw
+            : (typeof membersRaw === 'string' ? membersRaw.split(',').map(m => m.trim()).filter(Boolean) : []);
 
-        return {
-          groupId: g.그룹ID || g.groupId,
-          name: g.그룹명 || g.name,
-          members: membersArray
-        };
-      });
-      setGroups(formattedGroups);
-    } catch (error) {
-      console.error('Failed to load groups:', error);
-    } finally {
-      setIsLoading(false);
+          return {
+            groupId: g.그룹ID || g.groupId,
+            name: g.그룹명 || g.name,
+            members: membersArray
+          };
+        });
+        setGroups(formattedGroups);
+        setIsLoading(false);
+        return;
+      } catch (error) {
+        lastError = error;
+        console.error(`Failed to load groups (attempt ${attempt}/${retryCount}):`, error);
+        if (attempt < retryCount) {
+          await new Promise(resolve => setTimeout(resolve, 2000));
+        }
+      }
     }
-  }, [user?.id, user?.adminId]);
+    setIsLoading(false);
+    showToast(`그룹 목록을 불러오지 못했습니다: ${lastError?.message || '네트워크 확인 후 새로고침해주세요'}`, 'error');
+  }, [user?.id, user?.adminId, showToast]);
 
   const handleSelectGroup = useCallback(async (group) => {
     // 그룹명을 먼저 설정하여 로딩 중에도 헤더에 즉시 표시
