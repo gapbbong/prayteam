@@ -71,7 +71,7 @@ export default function Sidebar({
             {/* Backdrop */}
             {isOpen && (
                 <div
-                    className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 animate-in fade-in duration-200"
+                    className="fixed inset-0 bg-black/20 z-40 animate-in fade-in duration-200"
                     onClick={onClose}
                 />
             )}
@@ -106,7 +106,7 @@ export default function Sidebar({
                                 <p className="text-xs text-slate-400 dark:text-slate-500">{user?.id || '환영합니다'}</p>
                             </div>
                         </div>
-                        <p className="text-xl font-black text-slate-400 dark:text-slate-500 text-right">v3.17</p>
+                        <p className="text-xl font-black text-slate-400 dark:text-slate-500 text-right">v3.18</p>
                     </div>
 
                     {/* Menu Items */}
