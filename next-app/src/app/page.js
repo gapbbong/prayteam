@@ -1232,6 +1232,8 @@ export default function Home() {
 
   if (authLoading) return <div className="min-h-screen flex items-center justify-center"><LoadingDots label="자동 로그인 중입니다..." /></div>;
 
+  if (isLoading) return <div className="min-h-screen flex items-center justify-center"><LoadingDots label={loadingProgress ? `데이터를 불러오는 중입니다. 잠시만 기다려 주세요 (${loadingProgress})` : '데이터를 불러오는 중입니다. 잠시만 기다려 주세요'} /></div>;
+
   if (!user && !isGuestMode) {
     return (
       <main className="container mx-auto px-4 min-h-[100dvh] flex flex-col justify-between py-10">
@@ -1262,11 +1264,6 @@ export default function Home() {
 
   return (
     <main className="w-full max-w-4xl mx-auto px-4 py-8 min-h-[100dvh] bg-transparent dark:bg-black">
-      {isLoading ? (
-        <div className="min-h-screen flex items-center justify-center">
-          <LoadingDots label={loadingProgress ? `데이터를 불러오는 중입니다. 잠시만 기다려 주세요 (${loadingProgress})` : '데이터를 불러오는 중입니다. 잠시만 기다려 주세요'} />
-        </div>
-      ) : (
         <>
       <InAppBrowserBanner />
       {/* Global Header */}
@@ -1375,7 +1372,6 @@ export default function Home() {
             </div>
           )}
         </>
-      )}
 
       <AddGroupModal
         isOpen={isAddGroupModalOpen}

@@ -6,7 +6,7 @@ export default function LoadingDots({ label = '처리 중' }) {
                 <div className="loading-dot w-3 h-3 bg-blue-500 rounded-full" style={{ animationDelay: '0.2s' }}></div>
                 <div className="loading-dot w-3 h-3 bg-blue-500 rounded-full" style={{ animationDelay: '0.4s' }}></div>
             </div>
-            <span className="text-gray-400 font-bold text-sm">
+            <span className="text-gray-400 font-bold text-base">
                 {label}
             </span>
             <style jsx>{`
