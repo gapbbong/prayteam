@@ -76,11 +76,11 @@ export default function MemberList({
     return (
         <div className="space-y-4 animate-in fade-in slide-in-from-right-8 duration-500 mb-20 pb-10">
             <div className="bg-blue-50/50 dark:bg-blue-900/10 border border-blue-100 dark:border-blue-900/30 rounded-xl px-4 py-2 animate-pulse mt-4 space-y-1">
-                <p className="text-blue-600 dark:text-blue-400 font-bold text-xs md:text-sm flex items-center gap-1.5">
+                <p className="text-blue-600 dark:text-blue-400 font-bold text-[15px] flex items-center gap-1.5">
                     <span className="text-lg">💡</span>
                     기도제목을 터치해 보세요, 기도 노트가 열립니다.
                 </p>
-                <p className="text-blue-500/80 dark:text-blue-400/80 font-bold text-[10px] md:text-xs flex items-center gap-1.5 pl-6">
+                <p className="text-blue-500/80 dark:text-blue-400/80 font-bold text-[15px] flex items-center gap-1.5 pl-6">
                     이름을 길게 누르면 멤버 이름과 기도제목을 숨김(보관) 처리할 수 있습니다.
                 </p>
             </div>
