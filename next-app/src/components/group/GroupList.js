@@ -77,7 +77,7 @@ export default function GroupList({ groups, onSelectGroup, onAddGroup, onViewAll
 
                                     {/* Text content - Left aligned with title start */}
                                     <div className="flex-1 flex flex-col justify-center items-start md:items-center gap-1 pb-1 min-w-0">
-                                        <h3 className="text-2xl font-black text-white drop-shadow-md truncate w-full text-left md:text-center">
+                                        <h3 className="text-xl md:text-2xl font-black text-white drop-shadow-md w-full text-left md:text-center overflow-hidden whitespace-nowrap [text-overflow:clip]">
                                             {group.name}
                                         </h3>
 

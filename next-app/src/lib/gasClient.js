@@ -40,11 +40,9 @@ export const gasClient = {
       return await response.json();
     } catch (error) {
       if (error && error.name === 'AbortError') {
-        const timeoutError = new Error('서버 응답이 없습니다 (25초 초과). 네트워크를 확인 후 다시 시도해주세요.');
+        const timeoutError = new Error('서버 응답이 없습니다. 네트워크를 확인 후 다시 시도해주세요.');
         console.error('GAS Client Request Timeout:', params && params.mode);
-        if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
-          window.dispatchEvent(new CustomEvent('app-error', { detail: timeoutError.message }));
-        }
+        // 타임아웃은 재시도되는 경우가 많아 빨간 오버레이를 띄우지 않음 (토스트로만 안내)
         throw timeoutError;
       }
       console.error('GAS Client Request Failed:', error);
