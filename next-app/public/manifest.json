@@ -1,6 +1,6 @@
 {
-    "name": "기도팀 PRAYTEAM",
-    "short_name": "기도팀",
+    "name": "기도그룹",
+    "short_name": "기도그룹",
     "description": "응답하시는 하나님을 신뢰하는 기도 공동체",
     "start_url": "/",
     "display": "standalone",
