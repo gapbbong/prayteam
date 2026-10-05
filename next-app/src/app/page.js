@@ -192,32 +192,71 @@ export default function Home() {
     setIsLoading(true);
     try {
       // [FIX] 멤버별 getPrayers N연타 대신 getPrayersAll 1회로 벌크 로딩 (GAS 콜드스타트 N번 회피)
-      const bulkData = await gasClient.getPrayersAll(group.groupId);
-      const dataMap = {};
-      const lookup = {};
-      if (Array.isArray(bulkData)) {
-        bulkData.forEach(item => {
-          if (item && item.멤버이름) lookup[item.멤버이름] = item;
-        });
-      }
-      group.members.forEach((member) => {
-        const data = lookup[member];
-        if (data) {
-          const commonTime = data.작성시간 || data.time || '';
-          const dates = (data.dates || []).map(d => d && String(d).trim() !== '' ? d : commonTime);
-          const prayers = data.prayers ? data.prayers.filter(p => p && String(p).trim() !== '') : [];
-          dataMap[member] = {
-            prayers,
-            responses: data.responses || [],
-            comments: data.comments || [],
-            dates: dates,
-            visibilities: data.visibilities || [],
-            indices: data.indices || prayers.map((_, i) => i + 1)
-          };
-        } else {
-          dataMap[member] = { prayers: [], responses: [], comments: [], dates: [], visibilities: [], indices: [] };
+      // 벌크가 25초 안에 안 오면(대용량 시트 등) 기존 멤버별 병렬 조회로 폴백
+      const withTimeout = (p, ms) => Promise.race([
+        p,
+        new Promise((_, reject) => setTimeout(() => reject(new Error('bulk timeout')), ms))
+      ]);
+      const buildMapFromBulk = (bulkData) => {
+        const dataMap = {};
+        const lookup = {};
+        if (Array.isArray(bulkData)) {
+          bulkData.forEach(item => {
+            if (item && item.멤버이름) lookup[item.멤버이름] = item;
+          });
         }
-      });
+        group.members.forEach((member) => {
+          const data = lookup[member];
+          if (data) {
+            const commonTime = data.작성시간 || data.time || '';
+            const dates = (data.dates || []).map(d => d && String(d).trim() !== '' ? d : commonTime);
+            const prayers = data.prayers ? data.prayers.filter(p => p && String(p).trim() !== '') : [];
+            dataMap[member] = {
+              prayers,
+              responses: data.responses || [],
+              comments: data.comments || [],
+              dates: dates,
+              visibilities: data.visibilities || [],
+              indices: data.indices || prayers.map((_, i) => i + 1)
+            };
+          } else {
+            dataMap[member] = { prayers: [], responses: [], comments: [], dates: [], visibilities: [], indices: [] };
+          }
+        });
+        return dataMap;
+      };
+      let dataMap;
+      try {
+        const bulkData = await withTimeout(gasClient.getPrayersAll(group.groupId), 25000);
+        dataMap = buildMapFromBulk(bulkData);
+      } catch (bulkErr) {
+        console.warn('Bulk load failed, fallback to per-member:', bulkErr?.message);
+        dataMap = {};
+        const fetchPromises = group.members.map(async (member) => {
+          try {
+            const data = await gasClient.getPrayers(group.groupId, member);
+            if (data) {
+              const commonTime = data.time || '';
+              const dates = (data.dates || []).map(d => d && String(d).trim() !== '' ? d : commonTime);
+              const prayers = data.prayers ? data.prayers.filter(p => p && String(p).trim() !== '') : [];
+              dataMap[member] = {
+                prayers,
+                responses: data.responses || [],
+                comments: data.comments || [],
+                dates: dates,
+                visibilities: data.visibilities || [],
+                indices: data.indices || []
+              };
+            } else {
+              dataMap[member] = { prayers: [], responses: [], comments: [], dates: [], visibilities: [], indices: [] };
+            }
+          } catch (e) {
+            console.error(`Failed to fetch for ${member}`, e);
+            dataMap[member] = { prayers: [], responses: [], comments: [], dates: [], visibilities: [], indices: [] };
+          }
+        });
+        await Promise.all(fetchPromises);
+      }
       groupPrayersRef.current = dataMap; // [ADD] Sync ref for member selection
       setGroupPrayers(dataMap);
       window.history.pushState({ view: 'members', group }, '', '#members');
@@ -1223,6 +1262,12 @@ export default function Home() {
 
   return (
     <main className="w-full max-w-4xl mx-auto px-4 py-8 min-h-[100dvh] bg-transparent dark:bg-black">
+      {isLoading ? (
+        <div className="min-h-screen flex items-center justify-center">
+          <LoadingDots label={loadingProgress ? `데이터를 불러오는 중입니다. 잠시만 기다려 주세요 (${loadingProgress})` : '데이터를 불러오는 중입니다. 잠시만 기다려 주세요'} />
+        </div>
+      ) : (
+        <>
       <InAppBrowserBanner />
       {/* Global Header */}
       <div className="relative flex items-center justify-between mb-0.5 px-1 h-10">
@@ -1268,12 +1313,6 @@ export default function Home() {
       </div>
 
 
-      {isLoading ? (
-        <div className="min-h-screen flex items-center justify-center">
-          <LoadingDots label={loadingProgress ? `데이터를 불러오는 중입니다. 잠시만 기다려 주세요 (${loadingProgress})` : '데이터를 불러오는 중입니다. 잠시만 기다려 주세요'} />
-        </div>
-      ) : (
-        <>
           {currentView === 'groups' && (
             <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
               <GroupList

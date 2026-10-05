@@ -6,19 +6,23 @@
 const PROXY_URL = '/api/proxy';
 
 export const gasClient = {
-  async request(params, method = 'POST') {
+  async request(params, method = 'POST', timeoutMs = 25000) {
+    const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    const timer = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
     try {
       const url = method === 'GET'
         ? `${PROXY_URL}?${new URLSearchParams(params).toString()}`
         : PROXY_URL;
 
-      const response = await fetch(url, {
+      const fetchOptions = {
         method: method,
         headers: {
           'Content-Type': 'application/json',
         },
         body: method === 'GET' ? null : JSON.stringify(params),
-      });
+      };
+      if (controller) fetchOptions.signal = controller.signal;
+      const response = await fetch(url, fetchOptions);
 
       if (!response.ok) {
         let errorBody = null;
@@ -35,12 +39,22 @@ export const gasClient = {
 
       return await response.json();
     } catch (error) {
+      if (error && error.name === 'AbortError') {
+        const timeoutError = new Error('서버 응답이 없습니다 (25초 초과). 네트워크를 확인 후 다시 시도해주세요.');
+        console.error('GAS Client Request Timeout:', params && params.mode);
+        if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
+          window.dispatchEvent(new CustomEvent('app-error', { detail: timeoutError.message }));
+        }
+        throw timeoutError;
+      }
       console.error('GAS Client Request Failed:', error);
       // Trigger global error event for our Error Overlay (SSR-safe)
       if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
         window.dispatchEvent(new CustomEvent('app-error', { detail: error.message }));
       }
       throw error;
+    } finally {
+      if (timer) clearTimeout(timer);
     }
   },
 
