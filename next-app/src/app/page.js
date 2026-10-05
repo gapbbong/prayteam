@@ -39,6 +39,8 @@ export default function Home() {
     return false;
   });
   const [groups, setGroups] = useState([]);
+  const groupsRef = useRef([]);
+  useEffect(() => { groupsRef.current = groups; }, [groups]);
   const [currentGroup, setCurrentGroup] = useState(null);
   const [currentMember, setCurrentMember] = useState(null);
   const [groupPrayers, setGroupPrayers] = useState({});
@@ -188,8 +190,15 @@ export default function Home() {
             members: membersArray
           };
         });
+        // 빈 응답으로는 기존 목록·캐시를 절대 덮지 않음
+        // (일시적 조회 실패로 목록이 사라졌다 나타나는 현상 방지)
+        if (formattedGroups.length === 0 && groupsRef.current.length > 0) {
+          console.warn('Empty group list ignored (keeping existing groups)');
+          setIsLoading(false);
+          return;
+        }
         setGroups(formattedGroups);
-        saveCache(formattedGroups);
+        if (formattedGroups.length > 0) saveCache(formattedGroups);
         setIsLoading(false);
         return;
       } catch (error) {
