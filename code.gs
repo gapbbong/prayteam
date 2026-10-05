@@ -440,6 +440,8 @@ function handleSavePrayer(data) {
   }
 
   const rowData = [data.groupName, data.groupId, data.member, now]; // 공통 4개
+  let hasNewPrayer = false; // 자구 수정·상태 변경만으로는 알림을 보내지 않음
+  const newPrayerTexts = [];
 
   for (let i = 0; i < needed; i++) {
     const pText = (data.prayers[i] || "").trim();
@@ -461,6 +463,10 @@ function handleSavePrayer(data) {
       const history = historyMap.get(pText);
       if (history.date) saveD = history.date; // 기존 날짜 유지
       if (history.visibility) saveV = history.visibility; // 기존 숨김상태 유지
+    } else {
+      // 기존에 없던 기도제목 = 신규 추가 → 알림 대상
+      hasNewPrayer = true;
+      newPrayerTexts.push(pText);
     }
 
     // 2. 숨김/보관 상태 처리 (프론트 요청 우선)
@@ -483,13 +489,24 @@ function handleSavePrayer(data) {
   
   sheet.appendRow(rowData);
 
-  // 알림 트리거 (동일)
-  try {
-     const payload = { groupId: data.groupId, title: `${data.member} 기도 업데이트`, message: data.prayers[0] || "기도제목 업데이트" };
-     const key = 'NOTI_' + Date.now() + Math.random();
-     PropertiesService.getScriptProperties().setProperty(key, JSON.stringify(payload));
-     ScriptApp.newTrigger('asyncSendNotification').timeBased().after(100).create();
-  } catch(e) {}
+  // 알림 즉시 발송 (신규 기도 추가시에만: 자구 수정·보관/상태 변경은 제외)
+  // 발송 실패해도 저장은 성공으로 반환
+  if (hasNewPrayer) {
+    try {
+      UrlFetchApp.fetch("https://praygroup.creat1324.com/api/notify", {
+        method: "post",
+        contentType: "application/json",
+        payload: JSON.stringify({
+          groupId: data.groupId,
+          title: `${data.member} 새 기도제목`,
+          message: newPrayerTexts[0] || "새 기도제목이 등록되었습니다"
+        }),
+        muteHttpExceptions: true
+      });
+    } catch (e) {
+      Logger.log("알림 즉시 발송 실패(무시): " + e);
+    }
+  }
 
   return jsonOutput({ success: true, message: "저장 완료", time: now });
 }
