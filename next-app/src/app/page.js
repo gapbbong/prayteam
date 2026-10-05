@@ -154,11 +154,27 @@ export default function Home() {
 
   const loadGroups = useCallback(async (retryCount = 3) => {
     if (!user?.id) return;
-    setIsLoading(true);
+    const cacheKey = `prayteam_groups_${user.adminId || user.id}`;
+    let hasCache = false;
+    // [SWR] 저장된 목록이 있으면 즉시 표시 후 백그라운드 갱신 (빈 화면 방지)
+    try {
+      const raw = localStorage.getItem(cacheKey);
+      if (raw) {
+        const cached = JSON.parse(raw);
+        if (Array.isArray(cached) && cached.length > 0) {
+          setGroups(cached);
+          hasCache = true;
+        }
+      }
+    } catch { /* 캐시 읽기 실패는 무시 */ }
+    if (!hasCache) setIsLoading(true);
+    const saveCache = (list) => {
+      try { localStorage.setItem(cacheKey, JSON.stringify(list)); } catch { /* 무시 */ }
+    };
     let lastError = null;
     for (let attempt = 1; attempt <= retryCount; attempt++) {
       try {
-        const res = await gasClient.getGroups(user.adminId || user.id);
+        const res = await gasClient.getGroups(user.adminId || user.id, 45000);
         const groupList = res.groups ? res.groups : (Array.isArray(res) ? res : []);
         const formattedGroups = groupList.map(g => {
           const membersRaw = g.구성원목록 || g.members || [];
@@ -173,6 +189,7 @@ export default function Home() {
           };
         });
         setGroups(formattedGroups);
+        saveCache(formattedGroups);
         setIsLoading(false);
         return;
       } catch (error) {
@@ -184,7 +201,10 @@ export default function Home() {
       }
     }
     setIsLoading(false);
-    showToast(`그룹 목록을 불러오지 못했습니다: ${lastError?.message || '네트워크 확인 후 새로고침해주세요'}`, 'error');
+    // 캐시가 있으면 조용히 유지, 없으면 에러 안내
+    if (!hasCache) {
+      showToast(`그룹 목록을 불러오지 못했습니다: ${lastError?.message || '네트워크 확인 후 새로고침해주세요'}`, 'error');
+    }
   }, [user?.id, user?.adminId, showToast]);
 
   // [SWR] 그룹 기도 데이터 세션 캐시 (10분): 재방문 시 즉시 표시 후 백그라운드 갱신

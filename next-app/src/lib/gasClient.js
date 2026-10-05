@@ -92,8 +92,8 @@ export const gasClient = {
     });
   },
 
-  async getGroups(userId) {
-    return this.request({ mode: 'getGroups', adminId: userId }, 'GET');
+  async getGroups(userId, timeoutMs = 45000) {
+    return this.request({ mode: 'getGroups', adminId: userId }, 'GET', timeoutMs);
   },
 
   async getGroupById(groupId) {
