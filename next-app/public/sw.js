@@ -7,8 +7,8 @@ self.addEventListener('push', function (event) {
 
         const options = {
             body: data.message,
-            icon: data.icon || '/next.svg',
-            badge: '/next.svg',
+            icon: data.icon || '/icon-192.png',
+            badge: '/icon-192.png',
             data: {
                 url: '/', // 알림 클릭 시 이동할 경로
                 groupId: data.groupId

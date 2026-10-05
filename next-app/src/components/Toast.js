@@ -1,6 +1,6 @@
 'use client';
 
-export default function Toast({ message, type = 'success', onClose }) {
+export default function Toast({ message, type = 'success', onClose, large = false }) {
     const typeStyles = {
         success: 'bg-white/80 border-blue-100 text-blue-800',
         error: 'bg-red-50/80 border-red-100 text-red-800',
@@ -27,11 +27,11 @@ export default function Toast({ message, type = 'success', onClose }) {
 
     return (
         <div className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-[9999] animate-in fade-in zoom-in-95 duration-300">
-            <div className={`px-5 py-4 rounded-2xl shadow-2xl backdrop-blur-xl border flex items-center gap-3 min-w-[320px] max-w-[90vw] ${typeStyles[type]}`}>
+            <div className={`rounded-2xl shadow-2xl backdrop-blur-xl border flex items-center gap-3 min-w-[320px] max-w-[90vw] ${typeStyles[type]} ${large ? 'px-7 py-6' : 'px-5 py-4'}`}>
                 <div className="flex-shrink-0 bg-white/50 p-1.5 rounded-xl shadow-sm">
                     {icons[type]}
                 </div>
-                <p className="text-sm font-bold tracking-tight flex-grow leading-tight">
+                <p className={`font-bold tracking-tight flex-grow leading-tight ${large ? 'text-lg' : 'text-sm'}`}>
                     {message}
                 </p>
                 <button

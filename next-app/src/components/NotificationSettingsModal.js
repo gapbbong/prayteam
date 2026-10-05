@@ -2,24 +2,16 @@
 
 import { useState, useEffect } from 'react';
 import { gasClient } from '@/lib/gasClient';
+import { urlBase64ToUint8Array, ensurePushRegistration } from '@/lib/push';
+import { useToast } from '@/context/ToastContext';
 
 const VAPID_PUBLIC_KEY = "BI18lvSQsbHQtOQq7r7E5kx_nHAC9pvHdjgN16yTd2cs38vQgbniDUiOnV6ja8OceKY9ku_q2RyC1owPsfghJeE";
-
-function urlBase64ToUint8Array(base64String) {
-    const padding = '='.repeat((4 - base64String.length % 4) % 4);
-    const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
-    const rawData = window.atob(base64);
-    const outputArray = new Uint8Array(rawData.length);
-    for (let i = 0; i < rawData.length; ++i) {
-        outputArray[i] = rawData.charCodeAt(i);
-    }
-    return outputArray;
-}
 
 export default function NotificationSettingsModal({ isOpen, onClose, groupName, groupId, user, onStatusChange }) {
     const [isEnabled, setIsEnabled] = useState(false);
     const [loading, setLoading] = useState(false);
     const [permissionStatus, setPermissionStatus] = useState('default');
+    const { showToast } = useToast();
 
     useEffect(() => {
         if (typeof window !== 'undefined' && 'Notification' in window && isOpen) {
@@ -69,18 +61,21 @@ export default function NotificationSettingsModal({ isOpen, onClose, groupName, 
                     return;
                 }
 
-                // 2. SW 준비 대기
+                // 2. SW 등록 보장 (미등록이면 직접 등록, 실패 시 진짜 원인 표시)
+                let registration;
                 try {
-                    await Promise.race([
-                        navigator.serviceWorker.ready,
-                        new Promise((_, reject) => setTimeout(() => reject(new Error('SW Timeout')), 3000))
-                    ]);
+                    registration = await ensurePushRegistration(10000);
                 } catch (swError) {
-                    console.warn('ServiceWorker ready timeout or error:', swError);
+                    console.warn('ServiceWorker 등록 실패:', swError);
+                    showToast(`알림 설정 실패: ${swError?.message || '다시 시도해주세요'}`, 'error');
+                    setIsEnabled(false);
+                    if (onStatusChange) onStatusChange(false);
+                    localStorage.removeItem(`prayteam_noti_${groupId}`);
+                    setLoading(false);
+                    return;
                 }
 
                 // 3. 푸시 구독 + 서버 저장 (Sidebar와 동일 경로)
-                const registration = await navigator.serviceWorker.ready;
                 const subscription = await registration.pushManager.subscribe({
                     userVisibleOnly: true,
                     applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
@@ -92,6 +87,7 @@ export default function NotificationSettingsModal({ isOpen, onClose, groupName, 
                 localStorage.setItem(`prayteam_noti_${groupId}`, 'true');
             } catch (error) {
                 console.error('Notification Subscribe Error:', error);
+                showToast(`알림 설정 실패: ${error?.message || '다시 시도해주세요'}`, 'error');
                 setIsEnabled(false);
                 if (onStatusChange) onStatusChange(false);
                 localStorage.removeItem(`prayteam_noti_${groupId}`);

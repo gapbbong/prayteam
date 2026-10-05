@@ -9,12 +9,12 @@ export function ToastProvider({ children }) {
     const [toast, setToast] = useState(null);
     const timerRef = useRef(null);
 
-    const showToast = useCallback((message, type = 'success', duration = 3000) => {
+    const showToast = useCallback((message, type = 'success', duration = 3000, large = false) => {
         if (timerRef.current) {
             clearTimeout(timerRef.current);
             timerRef.current = null;
         }
-        setToast({ message, type });
+        setToast({ message, type, large });
         timerRef.current = setTimeout(() => {
             setToast(null);
             timerRef.current = null;
@@ -28,6 +28,7 @@ export function ToastProvider({ children }) {
                 <Toast
                     message={toast.message}
                     type={toast.type}
+                    large={toast.large}
                     onClose={() => setToast(null)}
                 />
             )}

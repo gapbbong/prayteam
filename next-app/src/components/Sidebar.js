@@ -1,19 +1,9 @@
 import { useState } from 'react';
 import { gasClient } from "@/lib/gasClient";
+import { urlBase64ToUint8Array, ensurePushRegistration } from "@/lib/push";
 import { useToast } from "@/context/ToastContext";
 
 const VAPID_PUBLIC_KEY = "BI18lvSQsbHQtOQq7r7E5kx_nHAC9pvHdjgN16yTd2cs38vQgbniDUiOnV6ja8OceKY9ku_q2RyC1owPsfghJeE";
-
-function urlBase64ToUint8Array(base64String) {
-    const padding = '='.repeat((4 - base64String.length % 4) % 4);
-    const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
-    const rawData = window.atob(base64);
-    const outputArray = new Uint8Array(rawData.length);
-    for (let i = 0; i < rawData.length; ++i) {
-        outputArray[i] = rawData.charCodeAt(i);
-    }
-    return outputArray;
-}
 
 export default function Sidebar({
     isOpen,
@@ -46,7 +36,7 @@ export default function Sidebar({
         if (!currentGroup || notiBusy) return;
 
         setNotiBusy(true);
-        showToast('알림을 설정하는 중입니다. 잠시만 기다려주세요...', 'info');
+        showToast('알림을 설정하는 중입니다. 잠시만 기다려주세요...', 'info', 5000, true);
         try {
             const permission = await Notification.requestPermission();
             if (permission !== 'granted') {
@@ -54,11 +44,7 @@ export default function Sidebar({
                 return;
             }
 
-            const registration = await withTimeout(
-                navigator.serviceWorker.ready,
-                8000,
-                '서비스워커 준비 시간 초과 (앱을 재시작해주세요)'
-            );
+            const registration = await ensurePushRegistration(10000);
             const subscription = await withTimeout(
                 registration.pushManager.subscribe({
                     userVisibleOnly: true,
@@ -126,7 +112,7 @@ export default function Sidebar({
                                 <p className="text-xs text-slate-400 dark:text-slate-500">{user?.id || '환영합니다'}</p>
                             </div>
                         </div>
-                        <p className="text-[14px] font-black text-slate-400 dark:text-slate-500 text-right">v3.21</p>
+                        <p className="text-[14px] font-black text-slate-400 dark:text-slate-500 text-right">v3.22</p>
                     </div>
 
                     {/* Menu Items */}
