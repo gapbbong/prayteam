@@ -253,11 +253,16 @@ function handleSaveNote(e) {
     if (idxR > -1) sheet.getRange(target, idxR + 1).setValue('보관됨');
   }
 
+  bumpGroupVer(groupId);
   return jsonOutput({ success: true });
 }
 
 function handleGetGroups(e) {
   const adminId = e.parameter.adminId || "";
+  const cacheKey = "groups_" + adminId + "_v" + getGroupsVer();
+  const cached = cacheGet(cacheKey);
+  if (cached) return jsonOutput(cached);
+
   const sheet = getOrCreateSheet("그룹정보");
   
   // 데이터가 적을 땐 전체 로드해도 무방하지만, 많아지면 최적화 필요
@@ -296,7 +301,9 @@ function handleGetGroups(e) {
       };
     });
 
-  return jsonOutput({ groups });
+  const result = { groups };
+  cachePut(cacheKey, result);
+  return jsonOutput(result);
 }
 
 function handleGetGroupById(e) {
@@ -483,6 +490,9 @@ function handleSavePrayer(data) {
   
   sheet.appendRow(rowData);
 
+  // 쓰기 후 캐시 무효화 (버전 상승 → 이전 조회 캐시는 자연 만료)
+  bumpGroupVer(data.groupId);
+
   // 알림 발송은 프론트(/api/notify 직접 호출)에서 담당. GAS는 저장만 함.
   // (쿨다운 등 발송 규칙 변경 시 Apps Script 재배포 없이 프론트 배포로 반영)
 
@@ -538,6 +548,11 @@ function createPrayerHeaders(sheet, count) {
 function handleGetPrayers(e) {
   const groupId = e.parameter.groupId || "";
   const member = e.parameter.member || "";
+  if (!groupId || !member) return jsonOutput({});
+  const cacheKey = "pray_" + groupId + "_" + member + "_v" + getGroupVer(groupId);
+  const cached = cacheGet(cacheKey);
+  if (cached) return jsonOutput(cached);
+
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(groupId);
   if (!sheet) return jsonOutput({});
 
@@ -604,7 +619,7 @@ function handleGetPrayers(e) {
         }
       });
 
-      return jsonOutput({
+      const result = {
         groupId,
         member,
         prayers: resultPrayers,
@@ -614,7 +629,9 @@ function handleGetPrayers(e) {
         visibilities: resultVs,
         indices: resultIndices, // [NEW]
         time: row[timeCol]
-      });
+      };
+      cachePut(cacheKey, result);
+      return jsonOutput(result);
     }
   }
 
@@ -648,8 +665,13 @@ function handleGetPrayersAllGroups(e) {
   }
 }
 
-// [공통] 특정 그룹의 최신 기도 데이터 추출 함수
+// [공통] 특정 그룹의 최신 기도 데이터 추출 함수 (버전 캐시 적용)
 function getGroupPrayersData(ss, groupId) {
+  if (!groupId) return [];
+  const cacheKey = "gpray_" + groupId + "_v" + getGroupVer(groupId);
+  const cached = cacheGet(cacheKey);
+  if (cached) return cached;
+
   if (!ss) ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName(groupId);
   if (!sheet) return [];
@@ -715,7 +737,9 @@ function getGroupPrayersData(ss, groupId) {
       작성시간: row[updateTime],
     };
   }
-  return Object.values(latest);
+  const result = Object.values(latest);
+  cachePut(cacheKey, result);
+  return result;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -771,6 +795,8 @@ function handleAddMember(data) {
   sheet.getRange(rowIndex + 1, targetCol + 1).setValue(finalName);
   sheet.getRange(rowIndex + 1, idxCount + 1).setValue(current.length + 1);
 
+  bumpGroupsVer();
+  bumpGroupVer(groupId);
   return jsonOutput({
     success: true,
     message: `${finalName} 추가 완료`,
@@ -826,6 +852,8 @@ function handleRenameMember(data) {
     }
   }
 
+  bumpGroupsVer();
+  bumpGroupVer(groupId);
   return jsonOutput({
     success: true,
     message: `'${oldName}' → '${newName}' 이름 수정 완료`
@@ -868,6 +896,7 @@ function handleRenameGroup(e) {
 
   sheet.getRange(rowIndex + 1, idxName + 1).setValue(newName);
 
+  bumpGroupsVer();
   return jsonOutput({
     success: true,
     message: "그룹명이 정상적으로 수정되었습니다."
@@ -908,6 +937,8 @@ function handleDeleteGroup(e) {
     ss.deleteSheet(prayerSheet);
   }
 
+  bumpGroupsVer();
+  bumpGroupVer(groupId);
   return jsonOutput({
     success: true,
     message: "그룹이 정상적으로 삭제되었습니다."
@@ -968,6 +999,7 @@ function handleAddGroup(e) {
 
   sheet.appendRow(newRow);
 
+  bumpGroupsVer();
   return jsonOutput({
     success: true,
     message: "그룹 추가 완료",
@@ -1038,6 +1070,7 @@ function handleAddSharedGroup(e) {
 
   infoSheet.appendRow(newRow);
 
+  bumpGroupsVer();
   return jsonOutput({
     success: true,
     message: "공유 그룹이 내 그룹으로 복제 완료",
@@ -1256,6 +1289,62 @@ function getOrCreateSheet(name) {
   let s = ss.getSheetByName(name);
   if (!s) s = ss.insertSheet(name);
   return s;
+}
+
+/* -------------------------------------------------------------------------- */
+/* ✅ 조회 캐시 (CacheService, 120초) + 쓰기 시 버전 무효화                      */
+/* -------------------------------------------------------------------------- */
+var READ_CACHE_TTL = 120;
+
+function cacheGet(key) {
+  try {
+    const raw = CacheService.getScriptCache().get(key);
+    return raw ? JSON.parse(raw) : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+function cachePut(key, obj, ttlSec) {
+  try {
+    const s = JSON.stringify(obj);
+    if (s.length > 90000) return; // 키당 100KB 제한 회피
+    CacheService.getScriptCache().put(key, s, ttlSec || READ_CACHE_TTL);
+  } catch (e) { /* 캐시 실패는 무시 (원본 조회로 진행) */ }
+}
+
+// 그룹 데이터 버전: 쓰기 때마다 올려서 이전 캐시를 자연 만료시킴
+function getGroupVer(groupId) {
+  try {
+    return PropertiesService.getScriptProperties().getProperty('ver_' + groupId) || '0';
+  } catch (e) {
+    return '0';
+  }
+}
+
+function bumpGroupVer(groupId) {
+  if (!groupId) return;
+  try {
+    const props = PropertiesService.getScriptProperties();
+    const cur = parseInt(props.getProperty('ver_' + groupId) || '0', 10) || 0;
+    props.setProperty('ver_' + groupId, String(cur + 1));
+  } catch (e) {}
+}
+
+function getGroupsVer() {
+  try {
+    return PropertiesService.getScriptProperties().getProperty('ver_groups') || '0';
+  } catch (e) {
+    return '0';
+  }
+}
+
+function bumpGroupsVer() {
+  try {
+    const props = PropertiesService.getScriptProperties();
+    const cur = parseInt(props.getProperty('ver_groups') || '0', 10) || 0;
+    props.setProperty('ver_groups', String(cur + 1));
+  } catch (e) {}
 }
 
 function jsonOutput(obj) {
