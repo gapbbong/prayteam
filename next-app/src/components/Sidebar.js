@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { gasClient } from "@/lib/gasClient";
 import { useToast } from "@/context/ToastContext";
 
@@ -33,10 +34,19 @@ export default function Sidebar({
     onStatusChange // [NEW] Parent state updater
 }) {
     const { showToast } = useToast();
+    const [notiBusy, setNotiBusy] = useState(false);
+
+    const withTimeout = (promise, ms, message) =>
+        Promise.race([
+            promise,
+            new Promise((_, reject) => setTimeout(() => reject(new Error(message)), ms))
+        ]);
 
     const handleEnableNotifications = async () => {
-        if (!currentGroup) return;
+        if (!currentGroup || notiBusy) return;
 
+        setNotiBusy(true);
+        showToast('알림을 설정하는 중입니다. 잠시만 기다려주세요...', 'info');
         try {
             const permission = await Notification.requestPermission();
             if (permission !== 'granted') {
@@ -44,11 +54,19 @@ export default function Sidebar({
                 return;
             }
 
-            const registration = await navigator.serviceWorker.ready;
-            const subscription = await registration.pushManager.subscribe({
-                userVisibleOnly: true,
-                applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
-            });
+            const registration = await withTimeout(
+                navigator.serviceWorker.ready,
+                8000,
+                '서비스워커 준비 시간 초과 (앱을 재시작해주세요)'
+            );
+            const subscription = await withTimeout(
+                registration.pushManager.subscribe({
+                    userVisibleOnly: true,
+                    applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+                }),
+                15000,
+                '푸시 구독 시간 초과 (네트워크 확인 후 재시도)'
+            );
 
             await gasClient.saveSub({
                 groupId: currentGroup.groupId,
@@ -63,7 +81,9 @@ export default function Sidebar({
             onClose();
         } catch (error) {
             console.error('Notification Error:', error);
-            showToast('알림 설정 중 오류가 발생했습니다.', 'error');
+            showToast(`알림 설정 실패: ${error?.message || '다시 시도해주세요'}`, 'error');
+        } finally {
+            setNotiBusy(false);
         }
     };
     return (
@@ -106,7 +126,7 @@ export default function Sidebar({
                                 <p className="text-xs text-slate-400 dark:text-slate-500">{user?.id || '환영합니다'}</p>
                             </div>
                         </div>
-                        <p className="text-[14px] font-black text-slate-400 dark:text-slate-500 text-right">v3.20</p>
+                        <p className="text-[14px] font-black text-slate-400 dark:text-slate-500 text-right">v3.21</p>
                     </div>
 
                     {/* Menu Items */}
