@@ -31,7 +31,7 @@ export default function Toast({ message, type = 'success', onClose, large = fals
                 <div className="flex-shrink-0 bg-white/50 p-1.5 rounded-xl shadow-sm">
                     {icons[type]}
                 </div>
-                <p className={`font-bold tracking-tight flex-grow leading-tight ${large ? 'text-lg' : 'text-[15px]'}`}>
+                <p className={`font-bold tracking-tight flex-grow leading-tight ${large ? 'text-lg' : 'text-base'}`}>
                     {message}
                 </p>
                 <button

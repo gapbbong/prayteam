@@ -1269,7 +1269,7 @@ export default function Home() {
 
 
       {isLoading ? (
-        <div className="flex flex-col items-center justify-center py-20">
+        <div className="min-h-screen flex items-center justify-center">
           <LoadingDots label={loadingProgress ? `데이터를 불러오는 중입니다. 잠시만 기다려 주세요 (${loadingProgress})` : '데이터를 불러오는 중입니다. 잠시만 기다려 주세요'} />
         </div>
       ) : (
