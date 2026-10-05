@@ -63,7 +63,7 @@ export default function SignupForm() {
         <div className="w-full max-w-md mx-auto bg-white rounded-[2.5rem] shadow-2xl p-8 border border-slate-100 animate-in fade-in zoom-in-95 duration-500">
             <div className="text-center mb-6">
                 <h2 className="text-2xl font-black text-slate-800 tracking-tight">새 계정 만들기</h2>
-                <p className="text-slate-500 mt-1 font-medium text-sm">기도팀 관리자(리더) 계정을 생성합니다</p>
+                <p className="text-slate-500 mt-1 font-medium text-sm">기도그룹 관리자(리더) 계정을 생성합니다</p>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-4">

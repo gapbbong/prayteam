@@ -40,7 +40,7 @@ export default function LoginForm() {
                 </div>
                 <div className="flex-1 text-left">
                     <h2 className="text-2xl font-black text-slate-800 tracking-tight">반갑습니다^^</h2>
-                    <p className="text-slate-500 text-sm font-medium">기도팀 서비스에 오신 것을 환영합니다</p>
+                    <p className="text-slate-500 text-sm font-medium">기도그룹 서비스에 오신 것을 환영합니다</p>
                 </div>
             </div>
 
