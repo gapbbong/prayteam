@@ -257,7 +257,7 @@ export default function Home() {
       return dataMap;
     };
     try {
-      const bulkData = await withTimeout(gasClient.getPrayersAll(group.groupId, 60000), 45000);
+      const bulkData = await withTimeout(gasClient.getPrayersAll(group.groupId, 60000, true), 45000);
       return buildMapFromBulk(bulkData);
     } catch (bulkErr) {
       console.warn('Bulk load failed, fallback to per-member:', bulkErr?.message);

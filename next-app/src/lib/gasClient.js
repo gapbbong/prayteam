@@ -111,8 +111,10 @@ export const gasClient = {
     return this.request({ mode: 'getPrayers', groupId, member }, 'GET', timeoutMs);
   },
 
-  getPrayersAll(groupId, timeoutMs = 60000) {
-    return this.request({ mode: 'getPrayersAll', groupId }, 'GET', timeoutMs);
+  getPrayersAll(groupId, timeoutMs = 60000, force = false) {
+    const params = { mode: 'getPrayersAll', groupId };
+    if (force) params.force = 'true';
+    return this.request(params, 'GET', timeoutMs);
   },
 
   getPrayersAllGroups(groupIds, timeoutMs = 60000) {

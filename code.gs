@@ -549,9 +549,13 @@ function handleGetPrayers(e) {
   const groupId = e.parameter.groupId || "";
   const member = e.parameter.member || "";
   if (!groupId || !member) return jsonOutput({});
+  // [FIX] 저장 직후 강제 갱신 지원 (프론트에서 force=true 전달)
+  const force = e.parameter.force === "true";
   const cacheKey = "pray_" + groupId + "_" + member + "_v" + getGroupVer(groupId);
-  const cached = cacheGet(cacheKey);
-  if (cached) return jsonOutput(cached);
+  if (!force) {
+    const cached = cacheGet(cacheKey);
+    if (cached) return jsonOutput(cached);
+  }
 
   const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(groupId);
   if (!sheet) return jsonOutput({});
@@ -641,7 +645,7 @@ function handleGetPrayers(e) {
 function handleGetPrayersAll(e) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const groupId = e.parameter.groupId || "";
-  return jsonOutput(getGroupPrayersData(ss, groupId));
+  return jsonOutput(getGroupPrayersData(ss, groupId, e));
 }
 
 // [신설] 다중 그룹 벌크 로딩 핸들러
@@ -666,11 +670,15 @@ function handleGetPrayersAllGroups(e) {
 }
 
 // [공통] 특정 그룹의 최신 기도 데이터 추출 함수 (버전 캐시 적용)
-function getGroupPrayersData(ss, groupId) {
+function getGroupPrayersData(ss, groupId, e) {
   if (!groupId) return [];
+  // [FIX] 저장 직후 강제 갱신 지원 (프론트에서 force=true 전달)
+  const force = (e && e.parameter && e.parameter.force === "true");
   const cacheKey = "gpray_" + groupId + "_v" + getGroupVer(groupId);
-  const cached = cacheGet(cacheKey);
-  if (cached) return cached;
+  if (!force) {
+    const cached = cacheGet(cacheKey);
+    if (cached) return cached;
+  }
 
   if (!ss) ss = SpreadsheetApp.getActiveSpreadsheet();
   const sheet = ss.getSheetByName(groupId);
