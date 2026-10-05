@@ -231,7 +231,9 @@ export default function Home() {
       const lookup = {};
       if (Array.isArray(bulkData)) {
         bulkData.forEach(item => {
-          if (item && item.멤버이름) lookup[item.멤버이름] = item;
+          // 시트 이름 공백 차이로 매칭 실패(이름만 표시) 방지
+          const key = String(item && item.멤버이름 || '').trim();
+          if (key && !lookup[key]) lookup[key] = item;
         });
       }
       group.members.forEach((member) => {
@@ -360,9 +362,10 @@ export default function Home() {
       const dataLookup = {};
       bulkData.forEach(item => {
         const gid = item.그룹ID;
+        const mname = String(item.멤버이름 || '').trim();
         if (gid) {
           if (!dataLookup[gid]) dataLookup[gid] = {};
-          dataLookup[gid][item.멤버이름] = item;
+          if (mname) dataLookup[gid][mname] = item;
         }
       });
       const prayersList = [];
@@ -429,9 +432,10 @@ export default function Home() {
       const dataLookup = {};
       bulkData.forEach(item => {
         const gid = item.그룹ID;
+        const mname = String(item.멤버이름 || '').trim();
         if (gid) {
           if (!dataLookup[gid]) dataLookup[gid] = {};
-          dataLookup[gid][item.멤버이름] = item;
+          if (mname) dataLookup[gid][mname] = item;
         }
       });
 
@@ -531,7 +535,8 @@ export default function Home() {
               const newGroupPrayers = {};
               if (Array.isArray(prayersData)) {
                 prayersData.forEach(pData => {
-                  newGroupPrayers[pData.멤버이름] = pData;
+                  const key = String(pData.멤버이름 || '').trim();
+                  if (key) newGroupPrayers[key] = pData;
                 });
               }
 
