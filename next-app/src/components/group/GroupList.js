@@ -68,25 +68,25 @@ export default function GroupList({ groups, onSelectGroup, onAddGroup, onViewAll
                             <div className={`absolute inset-0 bg-gradient-to-br ${gradient} opacity-90 group-hover:opacity-100 transition-opacity`} />
 
                             {/* Content */}
-                            <div className="relative p-3">
-                                <div className="flex items-center gap-3">
+                            <div className="relative p-2">
+                                <div className="flex items-center gap-1.5">
                                     {/* Icon - Left aligned (Original) */}
-                                    <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform flex-shrink-0">
-                                        <span className="text-2xl">{icon}</span>
+                                    <div className="w-6 h-6 bg-white/20 backdrop-blur-sm rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform flex-shrink-0">
+                                        <span className="text-sm">{icon}</span>
                                     </div>
 
-                                    {/* Text content - Centered within the remaining space */}
-                                    <div className="flex-1 flex flex-col justify-center items-center gap-1 pb-1">
-                                        <h3 className="text-2xl font-black text-white drop-shadow-md truncate w-full text-center">
+                                    {/* Text content - Left aligned with title start */}
+                                    <div className="flex-1 flex flex-col justify-center items-start gap-1 pb-1 min-w-0">
+                                        <h3 className="text-2xl font-black text-white drop-shadow-md truncate w-full text-left">
                                             {group.name}
                                         </h3>
 
-                                        {/* Member Count - Centered */}
+                                        {/* Member Count - Left aligned */}
                                         <div className="inline-flex items-center gap-1.5 bg-white/20 backdrop-blur-sm px-2.5 py-0.5 rounded-full w-fit">
                                             <svg className="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                                             </svg>
-                                            <span className="text-xs font-bold text-white tabular-nums">{group.members?.length || 0}명</span>
+                                            <span className="text-sm font-bold text-white tabular-nums">{group.members?.length || 0}명</span>
                                         </div>
                                     </div>
                                 </div>
