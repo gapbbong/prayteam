@@ -125,5 +125,18 @@ export const gasClient = {
   async logStay(data) {
     // data: { page, groupId, stay, time }
     return this.request({ ...data, mode: 'logStay' });
+  },
+
+  // Push: GAS를 거치지 않고 Next /api/notify로 직접 발송
+  async notify({ groupId, title, message, icon }) {
+    const response = await fetch('/api/notify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ groupId, title, message, icon }),
+    });
+    if (!response.ok) {
+      throw new Error(`Notify failed: ${response.status}`);
+    }
+    return response.json();
   }
 };

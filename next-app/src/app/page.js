@@ -14,6 +14,7 @@ import AddGroupModal from '@/components/group/AddGroupModal';
 import NotificationSettingsModal from '@/components/NotificationSettingsModal';
 import Sidebar from '@/components/Sidebar';
 import InAppBrowserBanner, { restoreCarriedHash } from '@/components/InAppBrowserBanner';
+import { maybeNotifyPrayerSave } from '@/lib/push';
 import MemberActionModal from '@/components/group/MemberActionModal';
 // import html2canvas from 'html2canvas'; // 동적 import로 변경
 
@@ -930,6 +931,12 @@ export default function Home() {
           visibilities: newVisibilities
         });
         setHasUnsavedChanges(false);
+        // 발송 제어는 프론트에서 (10분 쿨다운, 실패해도 저장에는 영향 없음)
+        maybeNotifyPrayerSave({
+          groupId: currentGroup.groupId,
+          member: currentMember,
+          message: prayers[0] || '기도제목 업데이트'
+        });
       } catch (error) {
         console.error('Auto save on status update failed:', error);
         showToast('❌ 실시간 저장에 실패했습니다. (나중에 수동 저장 가능)', 'error');
@@ -990,6 +997,12 @@ export default function Home() {
 
       setHasUnsavedChanges(false);
       showToast('✅ 저장되었습니다!', 'success');
+      // 새 기도 추가 발송 (10분 쿨다운 적용)
+      maybeNotifyPrayerSave({
+        groupId: currentGroup.groupId,
+        member: currentMember,
+        message: newText
+      });
       return true;
     } catch (error) {
       console.error('Save failed:', error);
@@ -1053,6 +1066,12 @@ export default function Home() {
 
       setHasUnsavedChanges(false);
       showToast('✅ 저장되었습니다!', 'success');
+      // 발송 제어는 프론트에서 (10분 쿨다운, 실패해도 저장에는 영향 없음)
+      maybeNotifyPrayerSave({
+        groupId: currentGroup.groupId,
+        member: currentMember,
+        message: prayers[0] || '기도제목 업데이트'
+      });
     } catch (error) {
       console.error('Save all failed:', error);
       showToast('❌ 저장에 실패했습니다. 다시 시도해주세요.', 'error');

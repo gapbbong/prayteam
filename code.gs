@@ -483,22 +483,8 @@ function handleSavePrayer(data) {
   
   sheet.appendRow(rowData);
 
-  // 알림 즉시 발송 (어떤 수정이든 저장할 때마다: 점 하나 수정도 발송)
-  // 발송 실패해도 저장은 성공으로 반환
-  try {
-    UrlFetchApp.fetch("https://praygroup.creat1324.com/api/notify", {
-      method: "post",
-      contentType: "application/json",
-      payload: JSON.stringify({
-        groupId: data.groupId,
-        title: `${data.member} 기도 업데이트`,
-        message: data.prayers[0] || "기도제목 업데이트"
-      }),
-      muteHttpExceptions: true
-    });
-  } catch (e) {
-    Logger.log("알림 즉시 발송 실패(무시): " + e);
-  }
+  // 알림 발송은 프론트(/api/notify 직접 호출)에서 담당. GAS는 저장만 함.
+  // (쿨다운 등 발송 규칙 변경 시 Apps Script 재배포 없이 프론트 배포로 반영)
 
   return jsonOutput({ success: true, message: "저장 완료", time: now });
 }
