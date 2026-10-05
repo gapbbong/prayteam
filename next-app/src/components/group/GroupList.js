@@ -68,11 +68,11 @@ export default function GroupList({ groups, onSelectGroup, onAddGroup, onViewAll
                             <div className={`absolute inset-0 bg-gradient-to-br ${gradient} opacity-90 group-hover:opacity-100 transition-opacity`} />
 
                             {/* Content */}
-                            <div className="relative p-2 md:p-3">
-                                <div className="flex items-center gap-1.5 md:gap-3">
+                            <div className="relative p-3">
+                                <div className="flex items-center gap-3">
                                     {/* Icon - Left aligned (Original) */}
-                                    <div className="w-6 h-6 md:w-12 md:h-12 bg-white/20 backdrop-blur-sm rounded-lg md:rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform flex-shrink-0">
-                                        <span className="text-sm md:text-2xl">{icon}</span>
+                                    <div className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform flex-shrink-0">
+                                        <span className="text-2xl">{icon}</span>
                                     </div>
 
                                     {/* Text content - Left aligned with title start */}
