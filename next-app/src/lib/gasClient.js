@@ -57,8 +57,8 @@ export const gasClient = {
   },
 
   // Auth
-  async login(id, pwd) {
-    return this.request({ mode: 'login', id, pwd }, 'GET');
+  async login(id, pwd, timeoutMs = 45000) {
+    return this.request({ mode: 'login', id, pwd }, 'GET', timeoutMs);
   },
 
   async signup(id, pwd, email) {

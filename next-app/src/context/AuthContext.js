@@ -61,33 +61,36 @@ export function AuthProvider({ children }) {
     }, []);
 
     const login = async (id, pwd) => {
-        try {
-            const normId = String(id || '').toLowerCase().trim();
-            const result = await gasClient.login(normId, pwd);
-            if (result.success) {
-                const userData = {
-                    id: normId,
-                    name: result.name || normId,
-                    adminId: result.adminId || normId
-                };
-                setUser(userData);
-                // 자동로그인용 저장 (평문 노출 방지: base64 난독화 + 구형 키 정리)
-                try {
-                    localStorage.setItem('prayteam_creds', JSON.stringify({ b64: btoa(JSON.stringify({ id: normId, pwd })) }));
-                } catch {
-                    localStorage.setItem('prayteam_creds', JSON.stringify({ id: normId, pwd }));
+        const normId = String(id || '').toLowerCase().trim();
+        // 콜드스타트에 걸리면 1회 재시도 (폼에는 에러만 표시, 빨간 오버레이는 띄우지 않음)
+        let lastError = null;
+        for (let attempt = 1; attempt <= 2; attempt++) {
+            try {
+                const result = await gasClient.login(normId, pwd, 45000);
+                if (result.success) {
+                    const userData = {
+                        id: normId,
+                        name: result.name || normId,
+                        adminId: result.adminId || normId
+                    };
+                    setUser(userData);
+                    // 자동로그인용 저장 (평문 노출 방지: base64 난독화 + 구형 키 정리)
+                    try {
+                        localStorage.setItem('prayteam_creds', JSON.stringify({ b64: btoa(JSON.stringify({ id: normId, pwd })) }));
+                    } catch {
+                        localStorage.setItem('prayteam_creds', JSON.stringify({ id: normId, pwd }));
+                    }
+                    localStorage.setItem('prayteam_user', JSON.stringify(userData)); // Backward compatibility
+                    return { success: true };
+                } else {
+                    throw new Error(result.message || '로그인에 실패했습니다.');
                 }
-                localStorage.setItem('prayteam_user', JSON.stringify(userData)); // Backward compatibility
-                return { success: true };
-            } else {
-                throw new Error(result.message || '로그인에 실패했습니다.');
+            } catch (error) {
+                lastError = error;
+                console.warn(`Login attempt ${attempt}/2 failed:`, error?.message);
             }
-        } catch (error) {
-            if (typeof window !== 'undefined' && typeof window.dispatchEvent === 'function') {
-                window.dispatchEvent(new CustomEvent('app-error', { detail: error.message }));
-            }
-            return { success: false, error: error.message };
         }
+        return { success: false, error: lastError?.message || '로그인에 실패했습니다.' };
     };
 
     const logout = () => {
