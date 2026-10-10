@@ -5,7 +5,7 @@ import { gasClient } from '@/lib/gasClient';
 import { urlBase64ToUint8Array, ensurePushRegistration } from '@/lib/push';
 import { useToast } from '@/context/ToastContext';
 
-const VAPID_PUBLIC_KEY = "BP9loI31AQbZOXq8vxN4KOeh4kzLhZ6-hg44xiJ-WOcyjTfbIcu5NbsDcVyxgOYS5Ul_ObmIg_ftJ2ZZZamt4Xw";
+const VAPID_PUBLIC_KEY = "BDJkb8q_Xsx4UPYRUDvHqQ56cdjkBIpfqV_f7ZOpCQmyQHi7OMl3PNNyZ2kX-0LZTa-Koktxq3i2ZBlUGveuRok";
 
 export default function NotificationSettingsModal({ isOpen, onClose, groupName, groupId, user, onStatusChange }) {
     const [isEnabled, setIsEnabled] = useState(false);

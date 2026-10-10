@@ -3,7 +3,7 @@
 import { useState, useCallback } from 'react';
 import { gasClient } from '@/lib/gasClient';
 
-const VAPID_PUBLIC_KEY = "BP9loI31AQbZOXq8vxN4KOeh4kzLhZ6-hg44xiJ-WOcyjTfbIcu5NbsDcVyxgOYS5Ul_ObmIg_ftJ2ZZZamt4Xw";
+const VAPID_PUBLIC_KEY = "BDJkb8q_Xsx4UPYRUDvHqQ56cdjkBIpfqV_f7ZOpCQmyQHi7OMl3PNNyZ2kX-0LZTa-Koktxq3i2ZBlUGveuRok";
 
 function urlBase64ToUint8Array(base64String) {
     const padding = '='.repeat((4 - base64String.length % 4) % 4);

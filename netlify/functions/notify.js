@@ -4,10 +4,15 @@ const fetch = require("node-fetch");
 const { CONFIG } = require("./config.js");
 
 // 🔑 VAPID 키 (record.html의 applicationServerKey와 publicKey 반드시 동일!)
+// ⚠️ 이전 키가 GitHub에 노출되어 교체함(2026-10-10) — 반드시 환경변수로만 관리할 것
 const vapidKeys = {
-  publicKey: "BP9loI31AQbZOXq8vxN4KOeh4kzLhZ6-hg44xiJ-WOcyjTfbIcu5NbsDcVyxgOYS5Ul_ObmIg_ftJ2ZZZamt4Xw",
-  privateKey: "DyVtvPb2W-_iHi07cT5lc5O-14p115g1W4gXl3Tbcbc"
+  publicKey: process.env.VAPID_PUBLIC_KEY,
+  privateKey: process.env.VAPID_PRIVATE_KEY
 };
+
+if (!vapidKeys.publicKey || !vapidKeys.privateKey) {
+  throw new Error("VAPID_PUBLIC_KEY / VAPID_PRIVATE_KEY 환경변수가 설정되지 않았습니다.");
+}
 
 webpush.setVapidDetails(
   "mailto:admin@praygroup.com",

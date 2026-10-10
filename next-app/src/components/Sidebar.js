@@ -3,7 +3,7 @@ import { gasClient } from "@/lib/gasClient";
 import { urlBase64ToUint8Array, ensurePushRegistration } from "@/lib/push";
 import { useToast } from "@/context/ToastContext";
 
-const VAPID_PUBLIC_KEY = "BP9loI31AQbZOXq8vxN4KOeh4kzLhZ6-hg44xiJ-WOcyjTfbIcu5NbsDcVyxgOYS5Ul_ObmIg_ftJ2ZZZamt4Xw";
+const VAPID_PUBLIC_KEY = "BDJkb8q_Xsx4UPYRUDvHqQ56cdjkBIpfqV_f7ZOpCQmyQHi7OMl3PNNyZ2kX-0LZTa-Koktxq3i2ZBlUGveuRok";
 
 export default function Sidebar({
     isOpen,
@@ -120,7 +120,7 @@ export default function Sidebar({
                                 <p className="text-xs text-slate-400 dark:text-slate-500">{user?.id || '환영합니다'}</p>
                             </div>
                         </div>
-                        <p className="text-[14px] font-black text-slate-400 dark:text-slate-500 text-right">v3.41</p>
+                        <p className="text-[14px] font-black text-slate-400 dark:text-slate-500 text-right">v3.42</p>
                     </div>
 
                     {/* Menu Items */}
